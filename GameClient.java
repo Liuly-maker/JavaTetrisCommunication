@@ -1,27 +1,25 @@
+import javax.print.attribute.standard.JobMessageFromOperator;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import java.net.Socket;
+import java.util.Arrays;
 import java.util.Random;
 
-//總客戶端
 public class GameClient{
     public static void main(String [] args){
-        new GameFrame();
+        GameFrame GF = new GameFrame();
     }
 }
 
-//遊戲視窗內嵌通訊欄
 class GameFrame extends JFrame{
-    /**
-     *
-     */
-    private static final long serialVersionUID = 1L;
     /**
      * 布局元件
      */
     private JPanel MainPanel;
+    private ImageIcon background;
+    private JLabel backgroundLabel;
     private JPanel bottom;
     private JPanel top;
     private JPanel right;
@@ -357,7 +355,9 @@ class GameFrame extends JFrame{
          * 將遊戲添加於GamePanel
          */
         game = new Game();
+        GamePanel.setLayout(new BorderLayout());
         GamePanel.add(game);
+        game.setBackground(Color.white);
 
         this.add(MainPanel);    //添加主要Panel
     }
@@ -465,6 +465,9 @@ class GameFrame extends JFrame{
                         case KeyEvent.VK_P:
                             game.StopGame();
                             break;
+                        case KeyEvent.VK_SPACE:
+                            game.MoveBottom();
+                            break;
                     }
                 }
             }else{ //遊戲暫停時的按鍵判定
@@ -570,29 +573,26 @@ class GameFrame extends JFrame{
     }
 }
 
-//遊戲類別
-class Game extends JPanel implements KeyListener {
-    /**
-     *
-     */
-    private static final long serialVersionUID = 1L;
-    // 地圖長寬設定
-    private int mapRow = 21;
-    private int mapCol = 11;
-    //開闢一個二維陣列空間，用來存放我們的地圖資訊
-    private int mapGame[][] = new int[mapRow][mapCol];
-    //計時器
-    private Timer timer;
-    //記錄成績
-    private int score = 0;
-    Random random = new Random();
-    private int curShapeType = -1;
-    private int curShapeState = -1;//設定當前的形狀型別和當前的形狀狀態
-    private int nextShapeType = -1;
-    private int nextShapeState = -1;//設定下一次出現的方塊組的型別和狀態
+class Game extends JPanel{
+    private int mapRow = 22;                            //地圖長
+    private int mapCol = 12;                            //地圖寬
+    private int mapGame[][] = new int[mapRow][mapCol];  //地圖資訊
 
+    private Timer timer;                                //計時器
+    private int score = 0;                              //記錄成績
+    Random random = new Random();                       //隨機產生
+    private int curShapeType = -1;                      //當前形狀
+    private int curShapeState = -1;                     //當前形狀狀態
+    private int nextShapeType = -1;                     //下一次形狀
+    private int nextShapeState = -1;                    //下一次形狀狀態
+
+    //當前方塊座標
     private int posx = 0;
     private int posy = 0;
+
+    //預測方塊掉落到底座標
+    private int Pposx = 0;
+    private int Pposy = 0;
 
     private final int shapes[][][] = new int[][][]{
             //T字形按逆時針的順序儲存
@@ -649,19 +649,22 @@ class Game extends JPanel implements KeyListener {
     //這裡我們把儲存的影象看成是一個4*4的二維陣列，雖然在上面我們採用一維陣列來儲存，但實際還是要看成二維陣列來實現
     private int rowRect = 4;
     private int colRect = 4;
-    private int RectWidth = 15;
 
-    public Game()//建構函式----建立好地圖
+    //預設長寬
+    int RectWidth = 15;
+
+    public Game()                                   //建構函式----建立好地圖
     {
+        addComponentListener(new reSized());
         CreateRect();
         initMap();//初始化這個地圖
         SetWall();//設定牆
         // CreateRect();
         timer = new Timer(400,new TimerListener());
+        timer.start();
     }
 
-
-    class TimerListener implements ActionListener//監聽Timer設定每秒落下
+    class TimerListener implements ActionListener   //TimerListener
     {
         public void actionPerformed(ActionEvent e)
         {
@@ -669,7 +672,7 @@ class Game extends JPanel implements KeyListener {
         }
     }
 
-    public void SetWall()//第0列和第11列都是牆，第20行也是牆
+    public void SetWall()                           //第0列和第11列都是牆，第20行也是牆
     {
         for(int i = 0; i < mapRow; i++)//先畫列
         {
@@ -682,7 +685,7 @@ class Game extends JPanel implements KeyListener {
         }
     }
 
-    public void initMap()//初始化這個地圖，牆的ID是2，空格的ID是0，方塊的ID是1
+    public void initMap()                           //初始化這個地圖，牆的ID是2，空格的ID是0，方塊的ID是1
     {
         for(int i = 0; i < mapRow; i++)
         {
@@ -693,7 +696,7 @@ class Game extends JPanel implements KeyListener {
         }
     }
 
-    public void CreateRect()//建立方塊---如果當前的方塊型別和狀態都存在就設定下一次的，如果不存在就設定當前的並且設定下一次的狀態和型別
+    public void CreateRect()                        //建立方塊---如果當前的方塊型別和狀態都存在就設定下一次的，如果不存在就設定當前的並且設定下一次的狀態和型別
     {
         if(curShapeType == -1 && curShapeState == -1)//當前的方塊狀態都為1，表示遊戲才開始
         {
@@ -707,8 +710,11 @@ class Game extends JPanel implements KeyListener {
         }
         nextShapeType = random.nextInt(shapes.length);
         nextShapeState = random.nextInt(shapes[0].length);
+
+        //方塊生成座標
         posx = 0;
-        posy = (mapCol / 2) - 1;//牆的左上角建立方塊
+        posy = (mapCol / 2) - 1;
+
         if(GameOver(posx,posy,curShapeType,curShapeState))
         {
             JOptionPane.showConfirmDialog(null, "遊戲結束！", "提示", JOptionPane.OK_OPTION);
@@ -732,8 +738,8 @@ class Game extends JPanel implements KeyListener {
         {
             for(int j = 0; j < colRect; j++)
             {
-                if(shapes[ShapeType][ShapeState][i*colRect+j] == 1 && mapGame[x+i][y+j] == 1
-                        || shapes[ShapeType][ShapeState][i*colRect+j] == 1 && mapGame[x+i][y+j] == 2)
+                if(shapes[ShapeType][ShapeState][i*colRect+j] != 0 && mapGame[x+i][y+j] == 1
+                        || shapes[ShapeType][ShapeState][i*colRect+j] != 0 && mapGame[x+i][y+j] == 2)
                 {
                     return false;
                 }
@@ -742,12 +748,22 @@ class Game extends JPanel implements KeyListener {
         return true;
     }
 
-    public void Turn()//旋轉
+    public void prediction()        //判斷當前方塊下落座標
+    {
+        Pposx = posx;
+        Pposy = posy;
+        while(IsOrNoMove(Pposx,Pposy,curShapeType,curShapeState)){
+            Pposx++;
+        }
+    }
+
+    public void Turn()              //旋轉
     {
         int temp = curShapeState;
         curShapeState = (curShapeState+1) % shapes[0].length;
         if(IsOrNoMove(posx,posy,curShapeType,curShapeState))
         {
+
         }
         else
         {
@@ -756,7 +772,7 @@ class Game extends JPanel implements KeyListener {
         repaint();
     }
 
-    public void MoveDown()//向下移動
+    public void MoveDown()          //向下移動
     {
         if(IsOrNoMove(posx+1,posy,curShapeType,curShapeState))
         {
@@ -771,7 +787,7 @@ class Game extends JPanel implements KeyListener {
         repaint();
     }
 
-    public void MoveLeft()//向左移動
+    public void MoveLeft()          //向左移動
     {
         if(IsOrNoMove(posx,posy-1,curShapeType,curShapeState))
         {
@@ -780,7 +796,7 @@ class Game extends JPanel implements KeyListener {
         repaint();
     }
 
-    public void MoveRight()//向右移動
+    public void MoveRight()         //向右移動
     {
         if(IsOrNoMove(posx,posy+1,curShapeType,curShapeState))
         {
@@ -789,7 +805,18 @@ class Game extends JPanel implements KeyListener {
         repaint();
     }
 
-    public void AddToMap()//固定掉下來的這一影象到地圖中
+    public void MoveBottom()        //向底部移動
+    {
+        while(IsOrNoMove(posx+1,posy,curShapeType,curShapeState)){
+            posx++;
+        }
+        AddToMap();//將此行固定在地圖中
+        CheckLine();
+        CreateRect();//重新建立一個新的方塊
+        repaint();
+    }
+
+    public void AddToMap()          //固定掉下來的這一影象到地圖中
     {
         for(int i = 0; i < rowRect; i++)
         {
@@ -803,7 +830,7 @@ class Game extends JPanel implements KeyListener {
         }
     }
 
-    public void CheckLine()//檢查一下這些行中是否有滿行的
+    public void CheckLine()         //檢查一下這些行中是否有滿行的
     {
         int count = 0;
         for(int i = mapRow-2; i >= 0; i--)
@@ -833,29 +860,34 @@ class Game extends JPanel implements KeyListener {
         }
     }
 
-    //重新繪製視窗
-    public void paint(Graphics g){
-        //margin
-        int margin = 30;
-        //座標偏移量
-        int x = 225;
-        int y = 0;
-
+    public void paint(Graphics g)   //重新繪製視窗
+    {
         super.paint(g);
+
         g.setColor(Color.BLACK);
-        if(!timer.isRunning()){
-            g.setFont(new Font(Font.DIALOG,Font.BOLD,20));
-            g.drawString("遊戲暫停中", 80,200);
-            g.drawString("請按下繼續", 80,225);
+        g.setFont(new Font(Font.DIALOG, Font.BOLD, RectWidth));
+
+        prediction();
+        for(int i = 0; i < rowRect; i++)//繪製預測下來的方塊
+        {
+            for(int j = 0; j < colRect; j++)
+            {
+                if(shapes[curShapeType][curShapeState][i*colRect+j] == 1)
+                {
+                    g.setColor(Color.GRAY);
+                    g.fillRect((Pposy+j+1)*RectWidth, (Pposx+i)*RectWidth, RectWidth, RectWidth);
+                    g.setColor(Color.BLACK);
+                }
+            }
         }
-        g.setFont(new Font(Font.DIALOG,Font.PLAIN,15));
+
         for(int i = 0; i < rowRect; i++)//繪製正在下落的方塊
         {
             for(int j = 0; j < colRect; j++)
             {
                 if(shapes[curShapeType][curShapeState][i*colRect+j] == 1)
                 {
-                    g.fillRect(margin + (posy+j+1)*RectWidth, margin + (posx+i+1)*RectWidth, RectWidth, RectWidth);
+                    g.fillRect((posy+j+1)*RectWidth, (posx+i+1)*RectWidth, RectWidth, RectWidth);
                 }
             }
         }
@@ -865,50 +897,62 @@ class Game extends JPanel implements KeyListener {
             {
                 if(mapGame[i][j] == 2)//畫牆
                 {
-                    g.drawRect(margin + (j+1)*RectWidth, margin + (i+1)*RectWidth, RectWidth, RectWidth);
+                    g.drawRect((j+1)*RectWidth, (i+1)*RectWidth, RectWidth, RectWidth);
                 }
                 if(mapGame[i][j] == 1)//畫小方格
                 {
-                    g.fillRect(margin + (j+1)*RectWidth, margin + (i+1)*RectWidth, RectWidth, RectWidth);
+                    g.fillRect((j+1)*RectWidth, (i+1)*RectWidth, RectWidth, RectWidth);
                 }
             }
         }
 
-        g.drawString("score = " + score, margin + x, margin + 15);
-        g.drawString("下一個方塊：", margin + x, margin + y+35);
+        //座標偏移量
+        int x = RectWidth * (mapCol + 2);
+        int y = RectWidth + 15;
+        g.drawString("score = "+ score, x, y);
+        g.drawString("下一個方塊：", x, y * 2);
         for(int i = 0; i < rowRect; i++)
         {
             for(int j = 0; j < colRect; j++)
             {
                 if(shapes[nextShapeType][nextShapeState][i*colRect+j] == 1)
                 {
-                    g.fillRect(margin + x+(j*RectWidth), margin + y+85+(i*RectWidth), RectWidth, RectWidth);
+                    g.fillRect(x+(j*RectWidth), (y*3)+(i*RectWidth), RectWidth, RectWidth);
                 }
             }
         }
+
+        if(isGameStop()){
+            g.setFont(new Font(Font.DIALOG, Font.BOLD, RectWidth));
+            g.drawString("暫停一下", RectWidth * 5, RectWidth * 11);
+            g.drawString("按下繼續", RectWidth * 5, RectWidth * 12 + 5);
+        }
     }
 
-    //遊戲重新開始
-    public void NewGame(){
+
+    public void NewGame()           //遊戲重新開始
+    {
         score = 0;
         initMap();
         SetWall();
         CreateRect();
         repaint();
-        StopGame();
     }
 
-    //遊戲暫停
-    public void StopGame(){
+
+    public void StopGame()          //遊戲暫停
+    {
         timer.stop();
         repaint();
     }
 
-    public void ContinueGame() {
+    public void ContinueGame()      //遊戲繼續
+    {
         timer.start();
     }
 
-    public boolean isGameStop(){
+    public boolean isGameStop()     //遊戲使否暫停
+    {
         if(timer.isRunning()){
             return false;
         }else{
@@ -916,32 +960,24 @@ class Game extends JPanel implements KeyListener {
         }
     }
 
-    @Override
-    public void keyTyped(KeyEvent e) {
-    }
+    class reSized implements ComponentListener      //視窗改變，會隨之改變單個方塊大小
+    {
+        @Override
+        public void componentResized(ComponentEvent e) {
+            int Width = e.getComponent().getWidth() / 12;
+            int Height = e.getComponent().getHeight() / 22;
 
-    @Override
-    public void keyPressed(KeyEvent e) {
-        switch(e.getKeyCode())
-        {
-            case KeyEvent.VK_UP://上----旋轉
-                Turn();
-                break;
-            case KeyEvent.VK_DOWN://下----向下移動
-                MoveDown();
-                break;
-            case KeyEvent.VK_LEFT://左----向左移動
-                MoveLeft();
-                break;
-            case KeyEvent.VK_RIGHT://右----向右移動
-                MoveRight();
-                break;
+            if(Width > Height){
+                RectWidth = Height - 2;
+            }else{
+                RectWidth = Width - 1;
+            }
         }
-    }
-
-    @Override
-    public void keyReleased(KeyEvent e) {
-        // TODO Auto-generated method stub
+        @Override
+        public void componentMoved(ComponentEvent e) { }
+        @Override
+        public void componentShown(ComponentEvent e) { }
+        @Override
+        public void componentHidden(ComponentEvent e) { }
     }
 }
-

@@ -1,6 +1,6 @@
 /**
- * @file Game.java
- * @brief Java Swing視窗測試
+ * @file GameServer.java
+ * @brief Java SocketServer
  *
  * @author bbb233456@gmail.com
  * @date 2020/05/13
