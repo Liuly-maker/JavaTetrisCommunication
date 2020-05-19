@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import javax.print.attribute.standard.JobMessageFromOperator;
+=======
+import javax.imageio.ImageIO;
+>>>>>>> 50d187c0d993ce9a2bccd1efe443887c8d9ba794
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -359,6 +363,8 @@ class GameFrame extends JFrame{
         GamePanel.add(game);
         game.setBackground(Color.white);
 
+        game.setBackground(Color.white);
+
         this.add(MainPanel);    //添加主要Panel
     }
 
@@ -573,6 +579,7 @@ class GameFrame extends JFrame{
     }
 }
 
+<<<<<<< HEAD
 class Game extends JPanel{
     private int mapRow = 22;                            //地圖長
     private int mapCol = 12;                            //地圖寬
@@ -585,6 +592,28 @@ class Game extends JPanel{
     private int curShapeState = -1;                     //當前形狀狀態
     private int nextShapeType = -1;                     //下一次形狀
     private int nextShapeState = -1;                    //下一次形狀狀態
+=======
+//遊戲類別
+class Game extends JPanel implements KeyListener {
+    /**
+     *
+     */
+    private static final long serialVersionUID = 1L;
+    // 地圖長寬設定
+    private int mapRow = 25;
+    private int mapCol = 13;
+    //開闢一個二維陣列空間，用來存放我們的地圖資訊
+    private int mapGame[][] = new int[mapRow][mapCol];
+    //計時器
+    private Timer timer;
+    //記錄成績
+    private int score = 0;
+    Random random = new Random();
+    private int curShapeType = -1;
+    private int curShapeState = -1;//設定當前的形狀型別和當前的形狀狀態
+    private int nextShapeType = -1;
+    private int nextShapeState = -1;//設定下一次出現的方塊組的型別和狀態
+>>>>>>> 50d187c0d993ce9a2bccd1efe443887c8d9ba794
 
     //當前方塊座標
     private int posx = 0;
@@ -659,9 +688,14 @@ class Game extends JPanel{
         CreateRect();
         initMap();//初始化這個地圖
         SetWall();//設定牆
+<<<<<<< HEAD
         // CreateRect();
         timer = new Timer(400,new TimerListener());
         timer.start();
+=======
+
+        timer = new Timer(500,new TimerListener());
+>>>>>>> 50d187c0d993ce9a2bccd1efe443887c8d9ba794
     }
 
     class TimerListener implements ActionListener   //TimerListener
@@ -787,7 +821,23 @@ class Game extends JPanel{
         repaint();
     }
 
+<<<<<<< HEAD
     public void MoveLeft()          //向左移動
+=======
+    public void MoveBottom()//向下移動到最底層
+    {
+        while(IsOrNoMove(posx+1,posy,curShapeType,curShapeState)){
+            posx++;
+        }
+        AddToMap();//將此行固定在地圖中
+        CheckLine();
+        CreateRect();//重新建立一個新的方塊
+
+        repaint();
+    }
+
+    public void MoveLeft()//向左移動
+>>>>>>> 50d187c0d993ce9a2bccd1efe443887c8d9ba794
     {
         if(IsOrNoMove(posx,posy-1,curShapeType,curShapeState))
         {
@@ -864,6 +914,7 @@ class Game extends JPanel{
     {
         super.paint(g);
 
+<<<<<<< HEAD
         g.setColor(Color.BLACK);
         g.setFont(new Font(Font.DIALOG, Font.BOLD, RectWidth));
 
@@ -882,27 +933,76 @@ class Game extends JPanel{
         }
 
         for(int i = 0; i < rowRect; i++)//繪製正在下落的方塊
-        {
-            for(int j = 0; j < colRect; j++)
-            {
-                if(shapes[curShapeType][curShapeState][i*colRect+j] == 1)
-                {
-                    g.fillRect((posy+j+1)*RectWidth, (posx+i+1)*RectWidth, RectWidth, RectWidth);
-                }
-            }
-        }
+=======
         for(int i = 0; i < mapRow; i++)//繪製地圖上面已經固定好的方塊資訊
+>>>>>>> 50d187c0d993ce9a2bccd1efe443887c8d9ba794
         {
             for(int j = 0; j < mapCol; j++)
             {
                 if(mapGame[i][j] == 2)//畫牆
                 {
-                    g.drawRect((j+1)*RectWidth, (i+1)*RectWidth, RectWidth, RectWidth);
-                }
-                if(mapGame[i][j] == 1)//畫小方格
+<<<<<<< HEAD
+                    g.fillRect((posy+j+1)*RectWidth, (posx+i+1)*RectWidth, RectWidth, RectWidth);
+=======
+                    g.fillRect(margin + (j+1)*RectWidth, margin + (i+1)*RectWidth, RectWidth, RectWidth);
+                    //g.drawImage(image,margin + (j+1)*RectWidth,margin + (i+1)*RectWidth,RectWidth,RectWidth,null);
+                }else if(mapGame[i][j] == 1)//畫小方格
                 {
-                    g.fillRect((j+1)*RectWidth, (i+1)*RectWidth, RectWidth, RectWidth);
+                    g.fillRect(margin + (j+1)*RectWidth, margin + (i+1)*RectWidth, RectWidth, RectWidth);
+                }else{
+                    g.setColor(Color.GRAY);
+                    g.drawRect(margin + (j+1)*RectWidth, margin + (i+1)*RectWidth, RectWidth, RectWidth);
+                    g.setColor(Color.BLACK);
+>>>>>>> 50d187c0d993ce9a2bccd1efe443887c8d9ba794
                 }
+            }
+        }
+
+        for(int i = 0; i < rowRect; i++)//繪製正在下落的方塊
+        {
+            for(int j = 0; j < colRect; j++)
+            {
+<<<<<<< HEAD
+                if(mapGame[i][j] == 2)//畫牆
+                {
+                    g.drawRect((j+1)*RectWidth, (i+1)*RectWidth, RectWidth, RectWidth);
+=======
+                switch (curShapeType % 7){
+                    case 0:
+                        g.setColor(Color.GREEN);
+                        break;
+                    case 1:
+                        g.setColor(Color.MAGENTA);
+                        break;
+                    case 2:
+                        g.setColor(Color.ORANGE);
+                        break;
+                    case 3:
+                        g.setColor(Color.blue);
+                        break;
+                    case 4:
+                        g.setColor(Color.pink);
+                        break;
+                    case 5:
+                        g.setColor(Color.CYAN);
+                        break;
+                    case 6:
+                        g.setColor(Color.YELLOW);
+                        break;
+                    default:
+                        g.setColor(Color.BLUE);
+                        break;
+>>>>>>> 50d187c0d993ce9a2bccd1efe443887c8d9ba794
+                }
+                if(shapes[curShapeType][curShapeState][i*colRect+j] == 1)
+                {
+<<<<<<< HEAD
+                    g.fillRect((j+1)*RectWidth, (i+1)*RectWidth, RectWidth, RectWidth);
+=======
+                    g.fillRect(margin + (posy+j+1)*RectWidth, margin + (posx+i+1)*RectWidth, RectWidth, RectWidth);
+>>>>>>> 50d187c0d993ce9a2bccd1efe443887c8d9ba794
+                }
+                g.setColor(Color.BLACK);
             }
         }
 
@@ -915,17 +1015,53 @@ class Game extends JPanel{
         {
             for(int j = 0; j < colRect; j++)
             {
+                switch (nextShapeType % 7){
+                    case 0:
+                        g.setColor(Color.GREEN);
+                        break;
+                    case 1:
+                        g.setColor(Color.MAGENTA);
+                        break;
+                    case 2:
+                        g.setColor(Color.ORANGE);
+                        break;
+                    case 3:
+                        g.setColor(Color.blue);
+                        break;
+                    case 4:
+                        g.setColor(Color.pink);
+                        break;
+                    case 5:
+                        g.setColor(Color.CYAN);
+                        break;
+                    case 6:
+                        g.setColor(Color.YELLOW);
+                        break;
+                    default:
+                        g.setColor(Color.BLUE);
+                        break;
+                }
                 if(shapes[nextShapeType][nextShapeState][i*colRect+j] == 1)
                 {
                     g.fillRect(x+(j*RectWidth), (y*3)+(i*RectWidth), RectWidth, RectWidth);
                 }
+                g.setColor(Color.black);
             }
         }
 
+<<<<<<< HEAD
         if(isGameStop()){
             g.setFont(new Font(Font.DIALOG, Font.BOLD, RectWidth));
             g.drawString("暫停一下", RectWidth * 5, RectWidth * 11);
             g.drawString("按下繼續", RectWidth * 5, RectWidth * 12 + 5);
+=======
+        if(!timer.isRunning()){
+            g.setColor(Color.BLACK);
+            g.setFont(new Font(Font.DIALOG,Font.BOLD,23));
+            g.drawString("遊戲暫停中", 85,210);
+            g.drawString("請按下繼續", 85,235);
+            g.setFont(new Font(Font.DIALOG,Font.PLAIN,15));
+>>>>>>> 50d187c0d993ce9a2bccd1efe443887c8d9ba794
         }
     }
 
