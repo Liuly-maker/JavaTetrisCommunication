@@ -1,3 +1,4 @@
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -465,6 +466,9 @@ class GameFrame extends JFrame{
                         case KeyEvent.VK_P:
                             game.StopGame();
                             break;
+                        case KeyEvent.VK_SPACE:
+                            game.MoveBottom();
+                            break;
                     }
                 }
             }else{ //遊戲暫停時的按鍵判定
@@ -572,6 +576,7 @@ class GameFrame extends JFrame{
 
 //遊戲類別
 class Game extends JPanel implements KeyListener {
+    Image image;
     /**
      *
      */
@@ -653,10 +658,17 @@ class Game extends JPanel implements KeyListener {
 
     public Game()//建構函式----建立好地圖
     {
+        try {
+            image = ImageIO.read(new File("pic.jpg"));
+        }
+        catch (Exception ex) {
+            System.out.println("No example.jpg!!");
+        }
+
         CreateRect();
         initMap();//初始化這個地圖
         SetWall();//設定牆
-        // CreateRect();
+
         timer = new Timer(400,new TimerListener());
     }
 
@@ -771,6 +783,17 @@ class Game extends JPanel implements KeyListener {
         repaint();
     }
 
+    public void MoveBottom(){
+        while(IsOrNoMove(posx+1,posy,curShapeType,curShapeState)){
+            posx++;
+        }
+        AddToMap();//將此行固定在地圖中
+        CheckLine();
+        CreateRect();//重新建立一個新的方塊
+
+        repaint();
+    }
+
     public void MoveLeft()//向左移動
     {
         if(IsOrNoMove(posx,posy-1,curShapeType,curShapeState))
@@ -843,6 +866,7 @@ class Game extends JPanel implements KeyListener {
 
         super.paint(g);
         g.setColor(Color.BLACK);
+
         if(!timer.isRunning()){
             g.setFont(new Font(Font.DIALOG,Font.BOLD,20));
             g.drawString("遊戲暫停中", 80,200);
@@ -866,6 +890,7 @@ class Game extends JPanel implements KeyListener {
                 if(mapGame[i][j] == 2)//畫牆
                 {
                     g.drawRect(margin + (j+1)*RectWidth, margin + (i+1)*RectWidth, RectWidth, RectWidth);
+                    //g.drawImage(image,margin + (j+1)*RectWidth,margin + (i+1)*RectWidth,RectWidth,RectWidth,null);
                 }
                 if(mapGame[i][j] == 1)//畫小方格
                 {
