@@ -5,6 +5,8 @@
  * @author bbb233456@gmail.com
  * @date 2020/05/13
  * */
+import org.json.JSONObject;
+
 import java.io.*;
 import java.net.*;
 import java.util.Vector;
@@ -59,6 +61,10 @@ class ServerThread extends Server implements Runnable{
     String socketName;
     String userName;
 
+    final int _SEND_MSG = 0;
+    final int _GET_MSG = 1;
+    final int _SET_NAME = 2;
+
     ServerThread(Socket socket){
         this.socket = socket;
     }
@@ -69,25 +75,47 @@ class ServerThread extends Server implements Runnable{
             BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             //設定該客戶端的端點地址
             socketName = socket.getRemoteSocketAddress().toString();
+
             //客戶端設定用戶名稱
-            userName = reader.readLine();
+            userName = new JSONObject(reader.readLine()).getString("name");
+
             //廣播用戶加入連線
             System.out.println("[" + socketName + "] " + userName + " 已加入聊天");
             print("[" + socketName + "] " + userName + " 已加入聊天");
+
             boolean flag = true;
             while (flag)
             {
                 //阻塞，等待該客戶端的輸出流
                 String line = reader.readLine();
+
+                JSONObject json = new JSONObject(line);
+
                 //若客戶端退出，則退出連線。
                 if (line == null){
                     flag = false;
                     continue;
                 }
-                String msg = "[" + socketName + "] " + userName + " : "+line;
-                System.out.println(msg);
-                //向線上客戶端輸出資訊
-                print(msg);
+
+                switch (json.getInt("action")) {
+                    case _SEND_MSG: {
+                        String getMsg = json.getString("msg");
+                        String sendMsg = "[" + socketName + "] " + userName + " : " + getMsg;
+                        System.out.println(sendMsg);
+                        //向線上客戶端輸出資訊
+                        print(sendMsg);
+                        break;
+                    }
+                    case _SET_NAME:{
+                        String name = json.getString("name");
+                        setUserName(name);
+                        String sendMsg = "[" + socketName + "] " + userName + " 名稱已更改為 " + name;
+                        System.out.println(sendMsg);
+                        //向線上客戶端輸出資訊
+                        print(sendMsg);
+                        break;
+                    }
+                }
             }
             closeConnect();
         } catch (IOException e) {
@@ -128,5 +156,13 @@ class ServerThread extends Server implements Runnable{
             sockets.remove(socket);
         }
         socket.close();
+    }
+
+    /**
+     * 關閉該socket的連線
+     * @throws IOException
+     */
+    public void setUserName(String userName){
+        this.userName = userName;
     }
 }

@@ -1,3 +1,5 @@
+import org.json.JSONObject;
+
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
@@ -15,10 +17,6 @@ public class GameClient{
 
 //遊戲視窗內嵌通訊欄
 class GameFrame extends JFrame{
-    /**
-     *
-     */
-    private static final long serialVersionUID = 1L;
     /**
      * 布局元件
      */
@@ -47,17 +45,20 @@ class GameFrame extends JFrame{
     BufferedReader input;
     PrintWriter out;
 
+    final int _SEND_MSG = 0;
+    final int _GET_MSG = 1;
+    final int _SET_NAME = 2;
+
     ButtonTrack connectListener;
 
     Game game;
 
-    /**
-     * 視窗初始長寬設定
-     */
+    //視窗長寬設定
     private int window_Width = 1000;
     private int window_Height = 600;
 
-    private void setupUi(){
+    private void setupUi()                                      //設定介面
+    {
         try{  //設定Style為nimbus
             UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
         }
@@ -363,7 +364,8 @@ class GameFrame extends JFrame{
         this.add(MainPanel);    //添加主要Panel
     }
 
-    class ButtonTrack implements MouseListener{
+    class ButtonTrack implements MouseListener                  //按鈕的滑鼠監聽
+    {
         private String buttonName = "";
         ButtonTrack(String name){
             this.buttonName = name;
@@ -386,7 +388,8 @@ class GameFrame extends JFrame{
         public void mouseExited(MouseEvent mouseEvent) {}
     }
 
-    private void talkConnect(){
+    private void talkConnect()                                  //連接至伺服器
+    {
         String IP = textIP.getText();
         int Port = Integer.parseInt(TextPort.getText());
 
@@ -396,7 +399,14 @@ class GameFrame extends JFrame{
                 super.run();
                 try{
                     socket = new Socket(IP, Port);
+
+                    connectBtn.removeMouseListener(connectListener);
+                    connectBtn.setEnabled(false);
+                    stateLabel.setText("已連線至聊天伺服器");
+
                     input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+
                     new Thread(){
                         @Override
                         public void run() {
@@ -421,15 +431,15 @@ class GameFrame extends JFrame{
                     if(userName == null) {
                         talk.append("\n用戶取消連線");
                         socket.close();
-                    }else if(!userName.isEmpty()){
-                        out.println(userName);
-                        out.flush();
-                        sendMsg();
-                    }else{
-                        out.println("Client");
-                        out.flush();
-                        sendMsg();
+                    }else if(userName.isEmpty()){
+                        userName = "Client";
                     }
+                    JSONObject json = new JSONObject();
+                    json.put("action", _SET_NAME);
+                    json.put("name", userName);
+
+                    out.println(json.toString());
+                    out.flush();
                 }catch(IOException e){
                     System.err.println(e);
                 }
@@ -437,11 +447,13 @@ class GameFrame extends JFrame{
         }.start();
     }
 
-    private void clearTalk(){
+    private void clearTalk()                                    //清理對話框
+    {
         talk.setText("已清空對話...");
     }
 
-    private void addListener(){
+    private void addListener()                                  //添加監聽
+    {
         /**
          * 監聽全域鍵盤按鍵並傳送給game的鍵盤偵測
          */
@@ -483,6 +495,21 @@ class GameFrame extends JFrame{
             }
         }, AWTEvent.KEY_EVENT_MASK);
 
+        sendBtn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent mouseEvent) {
+                sendMsg();
+            }
+        });
+
+        sendMsg.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent keyEvent) {
+                if(keyEvent.getKeyCode() == KeyEvent.VK_ENTER)
+                    sendMsg();
+            }
+        });
+
         ContinueGame.addMouseListener(new ButtonTrack(ContinueGame.getText()));
         StopGame.addMouseListener(new ButtonTrack(StopGame.getText()));
         NewGame.addMouseListener(new ButtonTrack(NewGame.getText()));
@@ -494,59 +521,33 @@ class GameFrame extends JFrame{
 
     }
 
-    private void sendMsg(){
-        connectBtn.removeMouseListener(connectListener);
-        connectBtn.setEnabled(false);
-        stateLabel.setText("已連線至聊天伺服器");
+    private void sendMsg()                                      //寄送訊息
+    {
+        String msg = sendMsg.getText();
+        sendMsg.setText("");
 
-        sendBtn.addMouseListener(new MouseListener() {
-            @Override
-            public void mouseClicked(MouseEvent mouseEvent) {
-                String msg = sendMsg.getText();
-                if(!msg.isEmpty()) {
-                    out.println(msg);
-                    out.flush();
-                    System.out.println(msg);
-                }
-                sendMsg.setText("");
-            }
-            @Override
-            public void mousePressed(MouseEvent mouseEvent) {}
-            @Override
-            public void mouseReleased(MouseEvent mouseEvent) {}
-            @Override
-            public void mouseEntered(MouseEvent mouseEvent) {}
-            @Override
-            public void mouseExited(MouseEvent mouseEvent) {}
-        });
-        sendMsg.addKeyListener(new KeyListener() {
-            @Override
-            public void keyTyped(KeyEvent keyEvent) { }
-            @Override
-            public void keyPressed(KeyEvent keyEvent) {
-                if(keyEvent.getKeyCode() == KeyEvent.VK_ENTER) {
-                    String msg = sendMsg.getText();
-                    if (!msg.isEmpty()) {
-                        out.println(msg);
-                        out.flush();
-                        System.out.println(msg);
-                    }
-                    sendMsg.setText("");
-                }
-            }
-            @Override
-            public void keyReleased(KeyEvent keyEvent) { }
-        });
+        if(msg.isEmpty()) return;
+
+        JSONObject Jmsg = new JSONObject();
+
+        Jmsg.put("action", _SEND_MSG);
+        Jmsg.put("msg", msg);
+
+        out.println(Jmsg.toString());
+        out.flush();
+        System.out.println(Jmsg.toString());
     }
 
-    private class WindowTrack implements WindowStateListener{
+    private class WindowTrack implements WindowStateListener    //視窗狀態監聽
+    {
         @Override
         public void windowStateChanged(WindowEvent windowEvent) {
             if(windowEvent.getNewState() == 1) game.StopGame();
         }
     }
 
-    GameFrame(){
+    GameFrame()                                                 //建構子設定視窗
+    {
         /**
          * 元件布局
          * setupUi()
@@ -576,16 +577,22 @@ class GameFrame extends JFrame{
 
 //遊戲類別
 class Game extends JPanel{
+    Image image;
+
     private int mapRow = 22;                            // 地圖長
     private int mapCol = 12;                            // 地圖寬
     private int mapGame[][] = new int[mapRow][mapCol];  //地圖
     private Timer timer;                                //計時器
     private int score = 0;                              //記錄成績
     Random random = new Random();                       //隨機產生
+
     private int curShapeType = -1;
     private int curShapeState = -1;                     //設定當前的形狀型別和當前的形狀狀態
     private int nextShapeType = -1;
-    private int nextShapeState = -1;                    //設定下一次出現的方塊組的型別和狀態
+    private int nextShapeState = -1;                    //設定下一次出現的方塊的型別和狀態
+    private int holdShapeType = -1;
+    private int holdShapeState = -1;                    //設定保留的方塊的型別和狀態
+    private boolean ishold = false;
 
     private int posx = 0;                               //當前方塊位置
     private int posy = 0;                               //當前方塊位置
@@ -603,17 +610,17 @@ class Game extends JPanel{
             },
             //I字形按逆時針的順序儲存
             {
-                    {0,0,0,0, 1,1,1,1, 0,0,0,0, 0,0,0,0},
-                    {0,1,0,0, 0,1,0,0, 0,1,0,0, 0,1,0,0},
-                    {0,0,0,0, 1,1,1,1, 0,0,0,0, 0,0,0,0},
-                    {0,1,0,0, 0,1,0,0, 0,1,0,0, 0,1,0,0}
+                    {0,0,0,0, 3,3,3,3, 0,0,0,0, 0,0,0,0},
+                    {0,3,0,0, 0,3,0,0, 0,3,0,0, 0,3,0,0},
+                    {0,0,0,0, 3,3,3,3, 0,0,0,0, 0,0,0,0},
+                    {0,3,0,0, 0,3,0,0, 0,3,0,0, 0,3,0,0}
             },
             //倒Z形按逆時針的順序儲存
             {
-                    {0,1,1,0, 1,1,0,0, 0,0,0,0, 0,0,0,0},
-                    {1,0,0,0, 1,1,0,0, 0,1,0,0, 0,0,0,0},
-                    {0,1,1,0, 1,1,0,0, 0,0,0,0, 0,0,0,0},
-                    {1,0,0,0, 1,1,0,0, 0,1,0,0, 0,0,0,0}
+                    {0,4,4,0, 4,4,0,0, 0,0,0,0, 0,0,0,0},
+                    {4,0,0,0, 4,4,0,0, 0,4,0,0, 0,0,0,0},
+                    {0,4,4,0, 4,4,0,0, 0,0,0,0, 0,0,0,0},
+                    {4,0,0,0, 4,4,0,0, 0,4,0,0, 0,0,0,0}
             },
             //Z形按逆時針的順序儲存
             {
@@ -651,6 +658,11 @@ class Game extends JPanel{
 
     public Game()                                   //建構函式----建立好地圖
     {
+        try{
+            image = ImageIO.read(new File("Cube.png"));
+        }catch (Exception e){
+
+        }
         this.addComponentListener(new reSized());
         CreateRect();   //創建當前方塊
         initMap();      //初始化這個地圖
@@ -658,7 +670,6 @@ class Game extends JPanel{
 
         timer = new Timer(500,new TimerListener());
     }
-
 
     class TimerListener implements ActionListener   //監聽Timer設定每秒落下
     {
@@ -723,7 +734,6 @@ class Game extends JPanel{
         }
     }
 
-
     public boolean GameOver(int x, int y, int ShapeType, int ShapeState)    //判斷遊戲是否結束
     {
         if(IsOrNoMove(x,y,ShapeType,ShapeState))
@@ -740,8 +750,8 @@ class Game extends JPanel{
         {
             for(int j = 0; j < colRect; j++)
             {
-                if(shapes[ShapeType][ShapeState][i*colRect+j] == 1 && mapGame[x+i][y+j] == 1
-                        || shapes[ShapeType][ShapeState][i*colRect+j] == 1 && mapGame[x+i][y+j] == 2)
+                if(shapes[ShapeType][ShapeState][i*colRect+j] != 0 && mapGame[x+i][y+j] != 0
+                        || shapes[ShapeType][ShapeState][i*colRect+j] != 0 && mapGame[x+i][y+j] == 2)
                 {
                     return false;
                 }
@@ -818,13 +828,24 @@ class Game extends JPanel{
         repaint();
     }
 
+    public void HoldShape()         //保留當前方塊
+    {
+        if(ishold == false){
+            //將當前方塊型態保存
+            holdShapeState = curShapeState;
+            holdShapeType = curShapeType;
+            ishold = true;
+        }
+        CreateRect();
+    }
+
     public void AddToMap()          //固定掉下來的這一影象到地圖中
     {
         for(int i = 0; i < rowRect; i++)
         {
             for(int j = 0; j < colRect; j++)
             {
-                if(shapes[curShapeType][curShapeState][i*colRect+j] == 1)
+                if(shapes[curShapeType][curShapeState][i*colRect+j] != 0)
                 {
                     mapGame[posx+i][posy+j] = shapes[curShapeType][curShapeState][i*colRect+j];
                 }
@@ -840,7 +861,7 @@ class Game extends JPanel{
             count = 0;
             for(int j = 1; j < mapCol-1; j++)
             {
-                if(mapGame[i][j] == 1)
+                if(mapGame[i][j] != 0 && mapGame[i][j] != 2)
                 {
                     count++;
                 }
@@ -862,7 +883,7 @@ class Game extends JPanel{
         }
     }
 
-
+    @Override
     public void paint(Graphics g)   //重新繪製視窗
     {
         super.paint(g);
@@ -875,7 +896,7 @@ class Game extends JPanel{
         {
             for(int j = 0; j < colRect; j++)
             {
-                if(shapes[curShapeType][curShapeState][i*colRect+j] == 1)
+                if(shapes[curShapeType][curShapeState][i*colRect+j] != 0)
                 {
 
                     g.fillRect((Pposy+j+1)*RectWidth, (Pposx+i+1)*RectWidth, RectWidth, RectWidth);
@@ -889,7 +910,7 @@ class Game extends JPanel{
         {
             for(int j = 0; j < colRect; j++)
             {
-                if(shapes[curShapeType][curShapeState][i*colRect+j] == 1)
+                if(shapes[curShapeType][curShapeState][i*colRect+j] != 0)
                 {
                     g.fillRect((posy+j+1)*RectWidth, (posx+i+1)*RectWidth, RectWidth, RectWidth);
                 }
@@ -900,14 +921,37 @@ class Game extends JPanel{
         {
             for(int j = 0; j < mapCol; j++)
             {
-                if(mapGame[i][j] == 2)//畫牆
-                {
-                    g.drawRect((j+1)*RectWidth, (i+1)*RectWidth, RectWidth, RectWidth);
-                    //g.drawImage(image,margin + (j+1)*RectWidth,margin + (i+1)*RectWidth,RectWidth,RectWidth,null);
-                }
-                if(mapGame[i][j] == 1)//畫小方格
-                {
-                    g.fillRect((j+1)*RectWidth, (i+1)*RectWidth, RectWidth, RectWidth);
+                switch (mapGame[i][j]){
+                    case 0:     //空白
+                        g.setColor(Color.GRAY);
+                        g.drawRect((j+1)*RectWidth, (i+1)*RectWidth, RectWidth, RectWidth);
+                        g.setColor(Color.BLACK);
+                        break;
+                    case 1:     //預設方格
+                        g.fillRect((j+1)*RectWidth, (i+1)*RectWidth, RectWidth, RectWidth);
+                        break;
+                    case 2:     //牆
+                        g.setColor(Color.WHITE);
+                        g.fillRect((j+1)*RectWidth, (i+1)*RectWidth, RectWidth, RectWidth);
+                        g.setColor(Color.BLACK);
+                        g.drawRect((j+1)*RectWidth, (i+1)*RectWidth, RectWidth, RectWidth);
+                        break;
+                    case 3:     //長條
+                        g.setColor(Color.BLUE);
+                        g.drawImage(image,(j+1)*RectWidth, (i+1)*RectWidth, RectWidth, RectWidth,null);
+                        //g.fillRect((j+1)*RectWidth, (i+1)*RectWidth, RectWidth, RectWidth);
+                        g.setColor(Color.BLACK);
+                        break;
+                    case 4:     //倒Z
+                        g.setColor(Color.ORANGE);
+                        g.fillRect((j+1)*RectWidth, (i+1)*RectWidth, RectWidth, RectWidth);
+                        g.setColor(Color.BLACK);
+                        break;
+                    default:    //預設
+                        g.setColor(Color.CYAN);
+                        g.fillRect((j+1)*RectWidth, (i+1)*RectWidth, RectWidth, RectWidth);
+                        g.setColor(Color.BLACK);
+                        break;
                 }
             }
         }
@@ -922,7 +966,7 @@ class Game extends JPanel{
         {
             for(int j = 0; j < colRect; j++)
             {
-                if(shapes[nextShapeType][nextShapeState][i*colRect+j] == 1)
+                if(shapes[nextShapeType][nextShapeState][i*colRect+j] != 0)
                 {
                     g.fillRect(x + (j * RectWidth), (y * 6) + (i * RectWidth), RectWidth, RectWidth);
                 }
@@ -935,7 +979,6 @@ class Game extends JPanel{
         }
     }
 
-
     public void NewGame()           //遊戲重新開始
     {
         score = 0;
@@ -945,7 +988,6 @@ class Game extends JPanel{
         repaint();
         StopGame();
     }
-
 
     public void StopGame()          //遊戲暫停
     {
@@ -980,6 +1022,5 @@ class Game extends JPanel{
             }
         }
     }
-
 }
 
