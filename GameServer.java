@@ -1,6 +1,6 @@
 /**
- * @file GameServer.java
- * @brief Java SocketServer
+ * @file Game.java
+ * @brief Java Swing視窗測試
  *
  * @author bbb233456@gmail.com
  * @date 2020/05/13
@@ -106,6 +106,7 @@ class ServerThread extends Server implements Runnable{
      */
     private void print(String msg) throws IOException {
         PrintWriter out = null;
+
         synchronized (sockets){
             for (Socket sc : sockets){
                 out = new PrintWriter(sc.getOutputStream());
