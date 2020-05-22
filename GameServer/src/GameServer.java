@@ -28,6 +28,7 @@ class Server {
         //建立服務端
         ServerSocket server = new ServerSocket(6600);
         boolean flag = true;
+        int nowID = 0;
 
         System.out.println("開始監聽，等待用戶連線");
         System.out.println("IP Address : " + server.getLocalSocketAddress());
@@ -41,8 +42,9 @@ class Server {
                 synchronized (sockets){
                     sockets.add(accept);
                 }
+                nowID++;
                 //多個伺服器執行緒進行對客戶端的響應
-                Thread thread = new Thread(new ServerThread(accept));
+                Thread thread = new Thread(new ServerThread(accept,nowID));
                 thread.start();
                 //捕獲異常。
             }catch (Exception e){
@@ -60,13 +62,20 @@ class ServerThread extends Server implements Runnable{
     Socket socket;
     String socketName;
     String userName;
+    int userID;
 
     final int _SEND_MSG = 0;
     final int _GET_MSG = 1;
     final int _SET_NAME = 2;
+    final int _SEND_GAMEMAP = 3;
+    final int _GET_GAMEMAP = 4;
+    final int _GET_COMPETITOR = 5;
+    final int _SEND_COMPETITOR = 6;
+    final int _SET_ID = 7;
 
-    ServerThread(Socket socket){
+    ServerThread(Socket socket, int userID){
         this.socket = socket;
+        this.userID = userID;
     }
 
     @Override
@@ -79,9 +88,12 @@ class ServerThread extends Server implements Runnable{
             //客戶端設定用戶名稱
             userName = new JSONObject(reader.readLine()).getString("name");
 
+            //寄送ID給用戶
+            sendID();
+
             //廣播用戶加入連線
-            System.out.println("[" + socketName + "] " + userName + " 已加入聊天");
-            print("[" + socketName + "] " + userName + " 已加入聊天");
+            System.out.println("[" + socketName + "] " + userID + " 已加入聊天");
+            print("[" + socketName + "] " + userID + " 已加入聊天");
 
             boolean flag = true;
             while (flag)
@@ -97,6 +109,10 @@ class ServerThread extends Server implements Runnable{
                     continue;
                 }
 
+                /**
+                 * 解析Json
+                 * 透過action了解用戶動作在做行動
+                 */
                 switch (json.getInt("action")) {
                     case _SEND_MSG: {
                         String getMsg = json.getString("msg");
@@ -113,6 +129,20 @@ class ServerThread extends Server implements Runnable{
                         System.out.println(sendMsg);
                         //向線上客戶端輸出資訊
                         print(sendMsg);
+                        break;
+                    }
+                    case _SEND_COMPETITOR:{
+                        String toUserAddress = json.getString("touseraddress");
+                        String UserAddress = json.getString("useraddress");
+                        String UserName = json.getString("username");
+
+                        System.out.println("開始尋找...");
+                        for(Socket sc : sockets){
+                            System.out.println(sc.getRemoteSocketAddress().toString());
+                            if(sc.getRemoteSocketAddress().toString().equals(toUserAddress))
+                                System.out.println("Founded!");
+                        }
+
                         break;
                     }
                 }
@@ -135,12 +165,32 @@ class ServerThread extends Server implements Runnable{
     private void print(String msg) throws IOException {
         PrintWriter out = null;
 
+        JSONObject Jmsg = new JSONObject();
+        Jmsg.put("action",_GET_MSG);
+        Jmsg.put("msg",msg);
+
         synchronized (sockets){
             for (Socket sc : sockets){
                 out = new PrintWriter(sc.getOutputStream());
-                out.println(msg);
+                out.println(Jmsg.toString());
                 out.flush();
             }
+        }
+    }
+
+    /**
+     * 設定用戶ID
+     */
+    private void sendID(){
+        try {
+            PrintWriter out = new PrintWriter(socket.getOutputStream());
+            JSONObject Jmsg = new JSONObject();
+            Jmsg.put("action",_SET_ID);
+            Jmsg.put("id", userID);
+            out.println(Jmsg.toString());
+            out.flush();
+        }catch (IOException e){
+            System.err.println(e);
         }
     }
 
