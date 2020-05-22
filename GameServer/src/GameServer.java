@@ -114,7 +114,8 @@ class ServerThread extends Server implements Runnable{
                  * 透過action了解用戶動作在做行動
                  */
                 switch (json.getInt("action")) {
-                    case _SEND_MSG: {
+                    case _SEND_MSG: //向聊天室發送訊息
+                        {
                         String getMsg = json.getString("msg");
                         String sendMsg = "[" + socketName + "] " + userName + " : " + getMsg;
                         System.out.println(sendMsg);
@@ -122,7 +123,8 @@ class ServerThread extends Server implements Runnable{
                         print(sendMsg);
                         break;
                     }
-                    case _SET_NAME:{
+                    case _SET_NAME: //客戶端設定名稱
+                        {
                         String name = json.getString("name");
                         setUserName(name);
                         String sendMsg = "[" + socketName + "] " + userName + " 名稱已更改為 " + name;
@@ -131,18 +133,57 @@ class ServerThread extends Server implements Runnable{
                         print(sendMsg);
                         break;
                     }
-                    case _SEND_COMPETITOR:{
-                        String toUserAddress = json.getString("touseraddress");
-                        String UserAddress = json.getString("useraddress");
-                        String UserName = json.getString("username");
+                    case _SEND_COMPETITOR: //寄送對戰邀請給對手
+                        {
+                        String toUserAddress = json.getString("touseraddress"); //欲尋找的對手位址
+                        String UserAddress = json.getString("useraddress");     //發來的Client端位置
+                        String UserName = json.getString("username");           //發來的Client端名稱
 
-                        System.out.println("開始尋找...");
+                        //透過Adress尋找對手
                         for(Socket sc : sockets){
-                            System.out.println(sc.getRemoteSocketAddress().toString());
                             if(sc.getRemoteSocketAddress().toString().equals(toUserAddress))
-                                System.out.println("Founded!");
-                        }
+                            {
+                                //找到了
+                                System.out.println("開始寄送邀請");
 
+                                //寄送邀請
+                                JSONObject Json = new JSONObject();
+                                Json.put("action",_GET_COMPETITOR);
+                                Json.put("useraddress",UserAddress);
+                                Json.put("username",UserName);
+
+                                synchronized (sc){
+                                    PrintWriter out = new PrintWriter(sc.getOutputStream());
+                                    out.println(Json.toString());
+                                    out.flush();
+                                }
+                            }
+                        }
+                        break;
+                    }
+                    case _SEND_GAMEMAP: //寄送當前地圖給對手
+                        {
+                        String toUserAddress = json.getString("touseraddress");
+
+                        //透過Adress尋找對手
+                        for(Socket sc : sockets){
+                            if(sc.getRemoteSocketAddress().toString().equals(toUserAddress))
+                            {
+                                //找到了
+                                System.out.println("寄送地圖給" + toUserAddress);
+
+                                //寄送地圖
+                                JSONObject Json = new JSONObject();
+                                Json.put("action",_GET_GAMEMAP);
+                                Json.put("map",json.get("map"));
+                                Json.put("score",json.getInt("score"));
+                                synchronized (sc){
+                                    PrintWriter out = new PrintWriter(sc.getOutputStream());
+                                    out.println(Json.toString());
+                                    out.flush();
+                                }
+                            }
+                        }
                         break;
                     }
                 }

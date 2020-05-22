@@ -98,9 +98,10 @@ class Competitor extends JPanel {
         SetWall();      //設定牆
 
         timer = new Timer(500,new TimerListener());
+        timer.start();
     }
 
-    class TimerListener implements ActionListener   //監聽Timer設定每秒落下
+    class TimerListener implements ActionListener   //監聽Timer
     {
         public void actionPerformed(ActionEvent e)
         {
@@ -164,27 +165,15 @@ class Competitor extends JPanel {
                         break;
                     case 3:     //長條
                         g.drawImage(orangeCube,x, y, RectWidth, RectWidth,null);
-                        //g.setColor(Color.BLUE);
-                        //g.fillRect((j+1)*RectWidth, (i+1)*RectWidth, RectWidth, RectWidth);
-                        //g.setColor(Color.BLACK);
                         break;
                     case 4:     //Z型
                         g.drawImage(redCube,x, y, RectWidth, RectWidth,null);
-                        //g.setColor(Color.ORANGE);
-                        //g.fillRect((j+1)*RectWidth, (i+1)*RectWidth, RectWidth, RectWidth);
-                        //g.setColor(Color.BLACK);
                         break;
                     case 5:     //L型
                         g.drawImage(greenCube,x, y, RectWidth, RectWidth,null);
-                        //g.setColor(Color.ORANGE);
-                        //g.fillRect((j+1)*RectWidth, (i+1)*RectWidth, RectWidth, RectWidth);
-                        //g.setColor(Color.BLACK);
                         break;
                     case 6:     //田型
                         g.drawImage(blueCube,x, y, RectWidth, RectWidth,null);
-                        //g.setColor(Color.ORANGE);
-                        //g.fillRect((j+1)*RectWidth, (i+1)*RectWidth, RectWidth, RectWidth);
-                        //g.setColor(Color.BLACK);
                         break;
                     default:    //預設
                         g.setColor(Color.CYAN);
@@ -203,7 +192,18 @@ class Competitor extends JPanel {
         g.drawString("score = " + score, RectWidth , y * 2);
     }
 
-    class reSized extends ComponentAdapter {
+    public void setMap(int[][] map)
+    {
+        this.mapGame = map;
+    }
+
+    public void setScore(int score)  //設定分數
+    {
+        this.score = score;
+    }
+
+    class reSized extends ComponentAdapter
+    {
         @Override
         public void componentResized(ComponentEvent e) {
             int Height = e.getComponent().getHeight() / 22;

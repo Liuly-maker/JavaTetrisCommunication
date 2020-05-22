@@ -1,12 +1,10 @@
 import org.json.JSONObject;
 
-import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import java.net.Socket;
-import java.util.Random;
 
 //總客戶端
 public class GameClient{
@@ -64,6 +62,8 @@ class GameFrame extends JFrame{
 
     Game game;
     Competitor competitor;
+
+    String toUserAdress;
 
     int clientID;
     String userName;
@@ -428,6 +428,12 @@ class GameFrame extends JFrame{
             public void run() {
                 super.run();
                 try{
+                    userName = JOptionPane.showInputDialog("輸入希望的用戶名稱 : ");
+                    if(userName == null) {
+                        talk.append("\n用戶取消連線");
+                        return;
+                    }
+
                     socket = new Socket(IP, Port);
 
                     addListenerAfterConnect();
@@ -455,7 +461,16 @@ class GameFrame extends JFrame{
                                             talk.append("\n" + "您的使用者ID為 = " + clientID);
                                             break;
                                         case _GET_COMPETITOR:
-                                            getCompetitor(Json);
+                                            toUserAdress = Json.getString("useraddress");
+                                            System.out.println("取得對手資訊" + toUserAdress + "開始寄送地圖");
+                                            sendMap();
+                                            break;
+                                        case _GET_GAMEMAP:
+                                            getMap(Json);
+                                            break;
+                                        default:
+                                            System.out.println(inMsg);
+                                            talk.append("\n" + inMsg);
                                             break;
                                     }
                                 }
@@ -471,19 +486,18 @@ class GameFrame extends JFrame{
                     }.start();
 
                     out = new PrintWriter(socket.getOutputStream());
-                    userName = JOptionPane.showInputDialog("輸入希望的用戶名稱 : ");
-                    if(userName == null) {
-                        talk.append("\n用戶取消連線");
-                        socket.close();
-                    }else if(userName.isEmpty()){
+
+                    if(userName.isEmpty()){
                         userName = "Client";
                     }
+
                     JSONObject json = new JSONObject();
                     json.put("action", _SET_NAME);
                     json.put("name", userName);
                     out.println(json.toString());
                     out.flush();
                 }catch(IOException e){
+                    JOptionPane.showMessageDialog(null, "伺服器連線失敗");
                     System.err.println(e);
                 }
             }
@@ -523,6 +537,9 @@ class GameFrame extends JFrame{
                             break;
                         case KeyEvent.VK_SPACE:
                             game.MoveBottom();
+                            break;
+                        case KeyEvent.VK_X:
+                            game.HoldShape();
                             break;
                     }
                 }
@@ -603,10 +620,51 @@ class GameFrame extends JFrame{
         System.out.println(Json.toString());
     }
 
+    private void sendMap()
+    {
+        Thread send = null;
+        if(send == null){
+            send = new Thread(() -> {
+                while(true) {
+                    JSONObject json = new JSONObject();
+                    json.put("action", _SEND_GAMEMAP);
+                    json.put("map", game.getMap());
+                    json.put("score",game.getScore());
+                    json.put("touseraddress", toUserAdress);
+
+                    out.println(json.toString());
+                    out.flush();
+
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+            send.start();
+        }
+    }
+
+    private void getMap(JSONObject Json)
+    {
+        int length1 = Json.getJSONArray("map").length();
+        int length2 = Json.getJSONArray("map").getJSONArray(0).length();
+        int [][] map = new int [length1][length2];
+
+        for(int i = 0;i < length1;i++){
+            for(int o = 0;o < length2;o++){
+                map[i][o] = Json.getJSONArray("map").getJSONArray(i).getInt(o);
+            }
+        }
+
+        competitor.setScore(Json.getInt("score"));
+        competitor.setMap(map);
+    }
+
     private void getCompetitor(JSONObject Json)                 //接收連線邀請
     {
-        Json.getInt("userid");
-        Json.getString("username");
+
     }
 
     private class WindowTrack implements WindowStateListener    //視窗狀態監聽
@@ -640,8 +698,13 @@ class GameFrame extends JFrame{
          */
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
         /**
+         * 設定視窗標題
+         */
+        this.setTitle("Tiramisu Tetris");
+        /**
          * 設定視窗可見
          */
         this.setVisible(true);
+
     }
 }

@@ -104,7 +104,7 @@ class Game extends JPanel {
             blackCube = ImageIO.read(new File("blackCube.png"));
             wallCube = ImageIO.read(new File("wallCube.png"));
         }catch (Exception e){
-
+            System.err.println(e);
         }
         this.addComponentListener(new reSized());
         CreateRect();   //創建當前方塊
@@ -168,12 +168,18 @@ class Game extends JPanel {
         posx = 0;
         posy = (mapCol / 2) - 1;
 
+        ishold = false;
+
         //如果產生出來的方塊與地圖當前方塊重疊為遊戲結束
         if(GameOver(posx,posy,curShapeType,curShapeState))
         {
             timer.stop();
-            JOptionPane.showConfirmDialog(null, "遊戲結束！", "提示", JOptionPane.OK_OPTION);
-            System.exit(0);
+            int select = JOptionPane.showConfirmDialog(null, "是否繼續?", "遊戲結束", JOptionPane.OK_OPTION);
+            if(select == 1){
+                System.exit(0);
+            }else{
+                NewGame();
+            }
         }
     }
 
@@ -271,15 +277,49 @@ class Game extends JPanel {
         repaint();
     }
 
-    public void HoldShape()         //保留當前方塊
+    public void HoldShape()         //Hold功能
     {
-        if(ishold == false){
+        if(holdShapeState == -1  && holdShapeType == -1){
             //將當前方塊型態保存
             holdShapeState = curShapeState;
             holdShapeType = curShapeType;
+
+            //切換下次的方塊
+            curShapeType = nextShapeType;
+            curShapeState = nextShapeState;
+
+            //產生下次方塊
+            nextShapeType = random.nextInt(shapes.length);
+            nextShapeState = random.nextInt(shapes[0].length);
+
+            //產生方塊於地圖中間頂部
+            posx = 0;
+            posy = (mapCol / 2) - 1;
+
+            ishold = true;
+
+            //如果產生出來的方塊與地圖當前方塊重疊為遊戲結束
+            if(GameOver(posx,posy,curShapeType,curShapeState))
+            {
+                timer.stop();
+                JOptionPane.showConfirmDialog(null, "遊戲結束！", "提示", JOptionPane.OK_OPTION);
+                System.exit(0);
+            }
+        }else if(!ishold){
+            int tmpState = curShapeState;
+            int tmpType = curShapeType;
+
+            curShapeState = holdShapeState;
+            curShapeType = holdShapeType;
+
+            holdShapeState = tmpState;
+            holdShapeType = tmpType;
+
+            posx = 0;
+            posy = (mapCol / 2) - 1;
+
             ishold = true;
         }
-        CreateRect();
     }
 
     public void AddToMap()          //固定掉下來的這一影象到地圖中
@@ -299,6 +339,7 @@ class Game extends JPanel {
     public void CheckLine()         //檢查一下這些行中是否有滿行的
     {
         int count = 0;
+        int ScoreBooster = 1;
         for(int i = mapRow-2; i >= 0; i--)
         {
             count = 0;
@@ -313,15 +354,18 @@ class Game extends JPanel {
             }
             if(count >= mapCol-2)
             {
+
                 for(int k = i; k > 0; k--)
                 {
                     for(int p = 1; p < mapCol-1; p++)
                     {
                         mapGame[k][p] = mapGame[k-1][p];
                     }
+
                 }
-                score += 10;
+                score += (ScoreBooster*10);
                 i++;
+                ScoreBooster++;
             }
         }
     }
@@ -333,6 +377,20 @@ class Game extends JPanel {
         g.setColor(Color.BLACK);
         g.setFont(new Font(Font.DIALOG,Font.BOLD,24));
 
+        for(int i = 0; i < mapRow; i++)         //刷上底層背景
+        {
+            for(int j = 0; j < mapCol; j++)
+            {
+                int x = (j+1)*RectWidth;
+                int y = (i+1)*RectWidth + RectWidth * 2;
+                g.setColor(Color.GRAY);
+                g.fillRect(x, y, RectWidth, RectWidth);
+                g.setColor(Color.DARK_GRAY);
+                g.drawRect(x, y, RectWidth, RectWidth);
+                g.setColor(Color.BLACK);
+            }
+        }
+
         for(int i = 0; i < mapRow; i++)         //繪製地圖上面已經固定好的方塊資訊
         {
             for(int j = 0; j < mapCol; j++)
@@ -341,9 +399,9 @@ class Game extends JPanel {
                 int y = (i+1)*RectWidth + RectWidth * 2;
                 switch (mapGame[i][j]){
                     case 0:     //空白
-                        g.setColor(Color.darkGray);
-                        g.fillRect(x, y, RectWidth, RectWidth);
                         g.setColor(Color.GRAY);
+                        g.fillRect(x, y, RectWidth, RectWidth);
+                        g.setColor(Color.DARK_GRAY);
                         g.drawRect(x, y, RectWidth, RectWidth);
                         g.setColor(Color.BLACK);
                         break;
@@ -358,27 +416,15 @@ class Game extends JPanel {
                         break;
                     case 3:     //長條
                         g.drawImage(orangeCube,x, y, RectWidth, RectWidth,null);
-                        //g.setColor(Color.BLUE);
-                        //g.fillRect((j+1)*RectWidth, (i+1)*RectWidth, RectWidth, RectWidth);
-                        //g.setColor(Color.BLACK);
                         break;
                     case 4:     //Z型
                         g.drawImage(redCube,x, y, RectWidth, RectWidth,null);
-                        //g.setColor(Color.ORANGE);
-                        //g.fillRect((j+1)*RectWidth, (i+1)*RectWidth, RectWidth, RectWidth);
-                        //g.setColor(Color.BLACK);
                         break;
                     case 5:     //L型
                         g.drawImage(greenCube,x, y, RectWidth, RectWidth,null);
-                        //g.setColor(Color.ORANGE);
-                        //g.fillRect((j+1)*RectWidth, (i+1)*RectWidth, RectWidth, RectWidth);
-                        //g.setColor(Color.BLACK);
                         break;
                     case 6:     //田型
                         g.drawImage(blueCube,x, y, RectWidth, RectWidth,null);
-                        //g.setColor(Color.ORANGE);
-                        //g.fillRect((j+1)*RectWidth, (i+1)*RectWidth, RectWidth, RectWidth);
-                        //g.setColor(Color.BLACK);
                         break;
                     default:    //預設
                         g.setColor(Color.CYAN);
@@ -390,7 +436,7 @@ class Game extends JPanel {
         }
 
         Pridiction();
-        g.setColor(Color.GRAY);
+        g.setColor(Color.DARK_GRAY);
         for(int i = 0; i < rowRect; i++)        //繪製預測的方塊
         {
             for(int j = 0; j < colRect; j++)
@@ -479,6 +525,38 @@ class Game extends JPanel {
         }
 
         g.drawString("Hold：", x, y * 9);
+        if(holdShapeType != -1 && holdShapeState != -1)
+        {
+            for (int i = 0; i < rowRect; i++) {
+                for (int j = 0; j < colRect; j++) {
+                    if (shapes[holdShapeType][holdShapeState][i * colRect + j] != 0) {
+                        switch (shapes[holdShapeType][holdShapeState][i * colRect + j]) {
+                            case 1:     //預設方格
+                                g.drawImage(blackCube, x + (j * RectWidth), (y * 10) + (i * RectWidth), RectWidth, RectWidth, null);
+                                break;
+                            case 3:     //長條
+                                g.drawImage(orangeCube, x + (j * RectWidth), (y * 10) + (i * RectWidth), RectWidth, RectWidth, null);
+                                break;
+                            case 4:     //Z型
+                                g.drawImage(redCube, x + (j * RectWidth), (y * 10) + (i * RectWidth), RectWidth, RectWidth, null);
+                                break;
+                            case 5:     //L型
+                                g.drawImage(greenCube, x + (j * RectWidth), (y * 10) + (i * RectWidth), RectWidth, RectWidth, null);
+                                break;
+                            case 6:     //田型
+                                g.drawImage(blueCube, x + (j * RectWidth), (y * 10) + (i * RectWidth), RectWidth, RectWidth, null);
+                                break;
+                            default:    //預設
+                                g.setColor(Color.CYAN);
+                                g.fillRect(x + (j * RectWidth), (y * 10) + (i * RectWidth), RectWidth, RectWidth);
+                                g.setColor(Color.BLACK);
+                                break;
+                        }
+                    }
+                }
+            }
+        }
+
 
         if(!timer.isRunning()){
             g.drawString("遊戲暫停中", RectWidth * 4,RectWidth * (mapRow / 2));
@@ -500,6 +578,16 @@ class Game extends JPanel {
     {
         timer.stop();
         repaint();
+    }
+
+    public int[][] getMap()
+    {
+        return mapGame;
+    }
+
+    public int getScore()
+    {
+        return score;
     }
 
     public void ContinueGame()      //繼續遊戲
