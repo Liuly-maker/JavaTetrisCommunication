@@ -1,10 +1,13 @@
 import org.json.JSONObject;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import java.net.Socket;
+import java.util.Vector;
 
 //總客戶端
 public class GameClient{
@@ -44,6 +47,7 @@ class GameFrame extends JFrame{
     private JPanel AnotherGame;
     private JLabel IPLabel;
     private JLabel PortLabel;
+    private DefaultTableModel TableModel = new DefaultTableModel();
 
     Socket socket;
     BufferedReader input;
@@ -57,6 +61,7 @@ class GameFrame extends JFrame{
     final int _GET_COMPETITOR = 5;
     final int _SEND_COMPETITOR = 6;
     final int _SET_ID = 7;
+    final int _SET_ONLINEMEMBER = 8;
 
     ButtonTrack connectListener;
 
@@ -362,7 +367,7 @@ class GameFrame extends JFrame{
         gbc.weighty = 1.0;
         gbc.fill = GridBagConstraints.BOTH;
         onlinePanel.add(scrollPane2, gbc);
-        onlineTable = new JTable();
+        onlineTable = new JTable(TableModel);
         scrollPane2.setViewportView(onlineTable);
         final JPanel spacer17 = new JPanel();
         gbc = new GridBagConstraints();
@@ -386,6 +391,7 @@ class GameFrame extends JFrame{
         gbc.fill = GridBagConstraints.HORIZONTAL;
         left.add(sendBtn, gbc);
 
+        talk.setFont(new Font(Font.DIALOG, Font.PLAIN, 20));
 
         /**
          * 遊戲畫面添加
@@ -449,14 +455,15 @@ class GameFrame extends JFrame{
                             try {
                                 while(true) {
                                     String inMsg = input.readLine();
+
                                     JSONObject Json = new JSONObject(inMsg);
-                                    switch (Json.getInt("action")){
+
+                                    switch (Json.getInt("action"))
+                                    {
                                         case _GET_MSG:
-                                            System.out.println(inMsg);
                                             talk.append("\n" + Json.getString("msg"));
                                             break;
                                         case _SET_ID:
-                                            System.out.println(inMsg);
                                             clientID = Json.getInt("id");
                                             talk.append("\n" + "您的使用者ID為 = " + clientID);
                                             break;
@@ -467,6 +474,9 @@ class GameFrame extends JFrame{
                                             break;
                                         case _GET_GAMEMAP:
                                             getMap(Json);
+                                            break;
+                                        case _SET_ONLINEMEMBER:
+                                            setMember(Json);
                                             break;
                                         default:
                                             System.out.println(inMsg);
@@ -673,6 +683,29 @@ class GameFrame extends JFrame{
         public void windowStateChanged(WindowEvent windowEvent) {
             if(windowEvent.getNewState() == 1) game.StopGame();
         }
+    }
+
+    private void setMember(JSONObject Json)                     //設定在線成員
+    {
+        Vector names = new Vector();            // 列名向量，使用它的add()方法添加列名
+        names.add("名稱");
+        names.add("位置");
+
+        int memberLen = Json.getJSONArray("member").length();
+
+        Vector data = new Vector();              // 数据行向量集，因为列表不止一行，往里面添加数据行向量，添加方法add(row)
+        Vector row = new Vector();              // 数据行向量，使用它的add()添加元素，比如整数、String、Object等，有几行就new几个行向量
+        for(int i = 0;i < memberLen;i++)
+        {
+            row.add(Json.getJSONArray("member").getString(i));
+            row.add(Json.getJSONArray("address").getString(i));
+
+            data.add(row.clone());
+
+            row = new Vector();
+        }
+
+        TableModel.setDataVector(data, names);   // 设置模型中的元素，它会自动显示在列表中
     }
 
     GameFrame()                                                 //建構子設定視窗

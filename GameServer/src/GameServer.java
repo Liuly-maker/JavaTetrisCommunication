@@ -18,8 +18,10 @@ public class GameServer {
     }
 }
 
-class Server {
+class Server
+{
     protected static Vector<Socket> sockets = new Vector<>();
+    protected static Vector<String> usernames = new Vector<>();
 
     Server(){
     }
@@ -72,6 +74,7 @@ class ServerThread extends Server implements Runnable{
     final int _GET_COMPETITOR = 5;
     final int _SEND_COMPETITOR = 6;
     final int _SET_ID = 7;
+    final int _SET_ONLINEMEMBER = 8;
 
     ServerThread(Socket socket, int userID){
         this.socket = socket;
@@ -79,7 +82,8 @@ class ServerThread extends Server implements Runnable{
     }
 
     @Override
-    public void run() {
+    public void run()
+    {
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             //設定該客戶端的端點地址
@@ -87,13 +91,19 @@ class ServerThread extends Server implements Runnable{
 
             //客戶端設定用戶名稱
             userName = new JSONObject(reader.readLine()).getString("name");
+            synchronized (usernames){
+                usernames.add(new String(userName));
+            }
+
+            //寄送在線用戶給每個用戶更新資訊
+            sendMember();
 
             //寄送ID給用戶
             sendID();
 
             //廣播用戶加入連線
-            System.out.println("[" + socketName + "] " + userID + " 已加入聊天");
-            print("[" + socketName + "] " + userID + " 已加入聊天");
+            System.out.println("[" + socketName + "] " + userName + " 已加入聊天");
+            print("[" + socketName + "] " + userName + " 已加入聊天");
 
             boolean flag = true;
             while (flag)
@@ -169,10 +179,7 @@ class ServerThread extends Server implements Runnable{
                         for(Socket sc : sockets){
                             if(sc.getRemoteSocketAddress().toString().equals(toUserAddress))
                             {
-                                //找到了
-                                System.out.println("寄送地圖給" + toUserAddress);
-
-                                //寄送地圖
+                                //找到了開始寄送地圖
                                 JSONObject Json = new JSONObject();
                                 Json.put("action",_GET_GAMEMAP);
                                 Json.put("map",json.get("map"));
@@ -203,7 +210,8 @@ class ServerThread extends Server implements Runnable{
      * @param msg
      * @throws IOException
      */
-    private void print(String msg) throws IOException {
+    private void print(String msg) throws IOException
+    {
         PrintWriter out = null;
 
         JSONObject Jmsg = new JSONObject();
@@ -220,40 +228,80 @@ class ServerThread extends Server implements Runnable{
     }
 
     /**
-     * 設定用戶ID
+     * 寄送在線用戶資訊
+     * @throws IOException
      */
-    private void sendID(){
-        try {
-            PrintWriter out = new PrintWriter(socket.getOutputStream());
-            JSONObject Jmsg = new JSONObject();
-            Jmsg.put("action",_SET_ID);
-            Jmsg.put("id", userID);
-            out.println(Jmsg.toString());
-            out.flush();
-        }catch (IOException e){
-            System.err.println(e);
+    private void sendMember() throws IOException
+    {
+        JSONObject json = new JSONObject();
+        String [] member = new String[usernames.size()];
+        String [] address = new String[sockets.size()];
+        synchronized (sockets){
+            int i = 0;
+            for (Socket sc : sockets){
+                address[i] = sc.getRemoteSocketAddress().toString();
+                i++;
+            }
         }
+        synchronized (usernames){
+            int i = 0;
+            for (String name : usernames){
+                member[i] = name;
+                i++;
+            }
+        }
+        json.put("action",_SET_ONLINEMEMBER);
+        json.put("member",member);
+        json.put("address",address);
+
+        PrintWriter out = null;
+        synchronized (sockets){
+            for (Socket sc : sockets){
+                out = new PrintWriter(sc.getOutputStream());
+                out.println(json.toString());
+                out.flush();
+            }
+        }
+    }
+
+    /**
+     * 設定用戶ID
+     * @throws IOException
+     */
+    private void sendID() throws IOException
+    {
+        PrintWriter out = new PrintWriter(socket.getOutputStream());
+        JSONObject Jmsg = new JSONObject();
+        Jmsg.put("action",_SET_ID);
+        Jmsg.put("id", userID);
+        out.println(Jmsg.toString());
+        out.flush();
     }
 
     /**
      * 關閉該socket的連線
      * @throws IOException
      */
-    public void closeConnect() throws IOException {
+    public void closeConnect() throws IOException
+    {
         System.out.println("[" + socketName + "] " + userName + "已退出聊天");
         print("[" + socketName + "] " + userName + "已退出聊天");
         //移除沒連線上的客戶端
         synchronized (sockets){
             sockets.remove(socket);
         }
+        usernames.remove(userName);
+        //退出時更新客戶端Member
+        sendMember();
         socket.close();
     }
 
     /**
-     * 關閉該socket的連線
-     * @throws IOException
+     * 設定用戶名稱
+     * @param userName
      */
-    public void setUserName(String userName){
+    public void setUserName(String userName)
+    {
         this.userName = userName;
     }
 }

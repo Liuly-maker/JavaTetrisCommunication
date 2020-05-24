@@ -16,6 +16,7 @@ class Game extends JPanel {
     Image blueCube;
     Image greenCube;
     Image blackCube;
+    Image background;
 
     private int mapRow = 22;                            // 地圖長
     private int mapCol = 12;                            // 地圖寬
@@ -103,6 +104,7 @@ class Game extends JPanel {
             greenCube = ImageIO.read(new File("greenCube.png"));
             blackCube = ImageIO.read(new File("blackCube.png"));
             wallCube = ImageIO.read(new File("wallCube.png"));
+            background = ImageIO.read(new File("background.jpg"));
         }catch (Exception e){
             System.err.println(e);
         }
@@ -377,6 +379,8 @@ class Game extends JPanel {
         g.setColor(Color.BLACK);
         g.setFont(new Font(Font.DIALOG,Font.BOLD,24));
 
+        g.drawRoundRect(0,0, this.getWidth()-10,getHeight()-5,10,10);
+
         for(int i = 0; i < mapRow; i++)         //刷上底層背景
         {
             for(int j = 0; j < mapCol; j++)
@@ -398,21 +402,11 @@ class Game extends JPanel {
                 int x = (j+1)*RectWidth;
                 int y = (i+1)*RectWidth + RectWidth * 2;
                 switch (mapGame[i][j]){
-                    case 0:     //空白
-                        g.setColor(Color.GRAY);
-                        g.fillRect(x, y, RectWidth, RectWidth);
-                        g.setColor(Color.DARK_GRAY);
-                        g.drawRect(x, y, RectWidth, RectWidth);
-                        g.setColor(Color.BLACK);
-                        break;
                     case 1:     //預設方格
                         g.drawImage(blackCube,x, y, RectWidth, RectWidth,null);
                         break;
                     case 2:     //牆
-                        g.setColor(Color.white);
-                        g.fillRoundRect(x, y, RectWidth, RectWidth, 5,5);
-                        g.setColor(Color.black);
-                        g.drawRoundRect(x, y, RectWidth, RectWidth, 5,5);
+                        g.drawImage(wallCube,x, y, RectWidth, RectWidth,null);
                         break;
                     case 3:     //長條
                         g.drawImage(orangeCube,x, y, RectWidth, RectWidth,null);
@@ -425,11 +419,6 @@ class Game extends JPanel {
                         break;
                     case 6:     //田型
                         g.drawImage(blueCube,x, y, RectWidth, RectWidth,null);
-                        break;
-                    default:    //預設
-                        g.setColor(Color.CYAN);
-                        g.fillRect(x, y, RectWidth, RectWidth);
-                        g.setColor(Color.BLACK);
                         break;
                 }
             }
