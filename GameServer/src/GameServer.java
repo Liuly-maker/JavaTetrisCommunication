@@ -75,6 +75,8 @@ class ServerThread extends Server implements Runnable{
     final int _SEND_COMPETITOR = 6;
     final int _SET_ID = 7;
     final int _SET_ONLINEMEMBER = 8;
+    final int _SEND_ITEM = 9;
+    final int _GET_ITEM = 10;
 
     ServerThread(Socket socket, int userID){
         this.socket = socket;
@@ -150,7 +152,8 @@ class ServerThread extends Server implements Runnable{
                         String UserName = json.getString("username");           //發來的Client端名稱
 
                         //透過Adress尋找對手
-                        for(Socket sc : sockets){
+                        for(Socket sc : sockets)
+                        {
                             if(sc.getRemoteSocketAddress().toString().equals(toUserAddress))
                             {
                                 //找到了
@@ -174,9 +177,11 @@ class ServerThread extends Server implements Runnable{
                     case _SEND_GAMEMAP: //寄送當前地圖給對手
                         {
                         String toUserAddress = json.getString("touseraddress");
+                        String UserAddress = json.getString("useraddress");
 
                         //透過Adress尋找對手
-                        for(Socket sc : sockets){
+                        for(Socket sc : sockets)
+                        {
                             if(sc.getRemoteSocketAddress().toString().equals(toUserAddress))
                             {
                                 //找到了開始寄送地圖
@@ -184,6 +189,30 @@ class ServerThread extends Server implements Runnable{
                                 Json.put("action",_GET_GAMEMAP);
                                 Json.put("map",json.get("map"));
                                 Json.put("score",json.getInt("score"));
+                                Json.put("useraddress",UserAddress);
+                                synchronized (sc){
+                                    PrintWriter out = new PrintWriter(sc.getOutputStream());
+                                    out.println(Json.toString());
+                                    out.flush();
+                                }
+                            }
+                        }
+                        break;
+                    }
+                    case _SEND_ITEM: //寄送使用道具給對手
+                    {
+                        String toUserAddress = json.getString("touseraddress");
+
+                        //透過Adress尋找對手
+                        for(Socket sc : sockets)
+                        {
+                            if(sc.getRemoteSocketAddress().toString().equals(toUserAddress))
+                            {
+                                //找到了開始寄送地圖
+                                JSONObject Json = new JSONObject();
+                                Json.put("action",_GET_ITEM);
+                                Json.put("item",json.getInt("item"));
+
                                 synchronized (sc){
                                     PrintWriter out = new PrintWriter(sc.getOutputStream());
                                     out.println(Json.toString());

@@ -2,7 +2,6 @@ import org.json.JSONObject;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
@@ -62,6 +61,8 @@ class GameFrame extends JFrame{
     final int _SEND_COMPETITOR = 6;
     final int _SET_ID = 7;
     final int _SET_ONLINEMEMBER = 8;
+    final int _SEND_ITEM = 9;
+    final int _GET_ITEM = 10;
 
     ButtonTrack connectListener;
 
@@ -72,6 +73,8 @@ class GameFrame extends JFrame{
 
     int clientID;
     String userName;
+
+    Thread send = null;
 
     //視窗長寬設定
     private int window_Width = 1500;
@@ -452,8 +455,10 @@ class GameFrame extends JFrame{
                     new Thread(){
                         @Override
                         public void run() {
-                            try {
-                                while(true) {
+                            try
+                            {
+                                while(true)
+                                {
                                     String inMsg = input.readLine();
 
                                     JSONObject Json = new JSONObject(inMsg);
@@ -469,14 +474,20 @@ class GameFrame extends JFrame{
                                             break;
                                         case _GET_COMPETITOR:
                                             toUserAdress = Json.getString("useraddress");
+                                            JOptionPane.showMessageDialog(null, "取得對手資訊" + toUserAdress + "開始寄送地圖");
                                             System.out.println("取得對手資訊" + toUserAdress + "開始寄送地圖");
                                             sendMap();
                                             break;
                                         case _GET_GAMEMAP:
+                                            toUserAdress = Json.getString("useraddress");
                                             getMap(Json);
+                                            sendMap();
                                             break;
                                         case _SET_ONLINEMEMBER:
                                             setMember(Json);
+                                            break;
+                                        case _GET_ITEM:
+                                            getItem(Json);
                                             break;
                                         default:
                                             System.out.println(inMsg);
@@ -484,12 +495,16 @@ class GameFrame extends JFrame{
                                             break;
                                     }
                                 }
-                            }catch (IOException e){
+                            }
+                            catch (IOException e)
+                            {
                                 connectBtn.addMouseListener(connectListener);
                                 connectBtn.setEnabled(true);
                                 stateLabel.setText("伺服器斷線...");
                                 System.err.println(e);
-                            }catch (Exception e){
+                            }
+                            catch (Exception e)
+                            {
                                 System.err.println(e);
                             }
                         }
@@ -497,7 +512,8 @@ class GameFrame extends JFrame{
 
                     out = new PrintWriter(socket.getOutputStream());
 
-                    if(userName.isEmpty()){
+                    if(userName.isEmpty())
+                    {
                         userName = "Client";
                     }
 
@@ -506,7 +522,9 @@ class GameFrame extends JFrame{
                     json.put("name", userName);
                     out.println(json.toString());
                     out.flush();
-                }catch(IOException e){
+                }
+                catch(IOException e)
+                {
                     JOptionPane.showMessageDialog(null, "伺服器連線失敗");
                     System.err.println(e);
                 }
@@ -550,6 +568,10 @@ class GameFrame extends JFrame{
                             break;
                         case KeyEvent.VK_X:
                             game.HoldShape();
+                            break;
+                        case KeyEvent.VK_C:
+                            if(socket != null)
+                                sendItem();
                             break;
                     }
                 }
@@ -632,7 +654,6 @@ class GameFrame extends JFrame{
 
     private void sendMap()
     {
-        Thread send = null;
         if(send == null){
             send = new Thread(() -> {
                 while(true) {
@@ -640,6 +661,7 @@ class GameFrame extends JFrame{
                     json.put("action", _SEND_GAMEMAP);
                     json.put("map", game.getMap());
                     json.put("score",game.getScore());
+                    json.put("useraddress",socket.getLocalSocketAddress());
                     json.put("touseraddress", toUserAdress);
 
                     out.println(json.toString());
@@ -675,6 +697,39 @@ class GameFrame extends JFrame{
     private void getCompetitor(JSONObject Json)                 //接收連線邀請
     {
 
+    }
+
+    private void sendItem()                                     //寄送使用道具
+    {
+        if(toUserAdress == null) return;
+        JSONObject json = new JSONObject();
+        json.put("action", _SEND_ITEM);
+        json.put("item", game.useItem());
+        json.put("touseraddress", toUserAdress);
+
+        out.println(json.toString());
+        out.flush();
+    }
+
+    private void getItem(JSONObject json)                                      //使用道具效果
+    {
+        int item = json.getInt("item");
+
+        switch (item)
+        {
+            case 1:
+                game.AddLine();
+                break;
+            case 2:
+                game.DeleteLine();
+                break;
+            case 3:
+                game.speedUp();
+                break;
+            case 4:
+                game.Block();
+                break;
+        }
     }
 
     private class WindowTrack implements WindowStateListener    //視窗狀態監聽

@@ -7,16 +7,34 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.io.File;
 import java.util.Random;
+import java.util.TimerTask;
 
 //遊戲類別
 class Game extends JPanel {
+    /*加載方塊圖片檔案*/
     Image wallCube;
     Image orangeCube;
     Image redCube;
     Image blueCube;
     Image greenCube;
     Image blackCube;
-    Image background;
+    Image iceCube;
+    Image grayCube;
+
+    /*加載道具圖片檔案*/
+    Image IceItem;
+    Image BombItem;
+    Image SpeedItem;
+    Image BlockItem;
+
+    //持有道具
+    //道具1 冰封
+    //道具2 炸彈
+    //道具3 加速
+    //道具4 阻擋視野
+    private int item1 = 1;
+    private int item2 = 1;
+
 
     private int mapRow = 22;                            // 地圖長
     private int mapCol = 12;                            // 地圖寬
@@ -38,6 +56,8 @@ class Game extends JPanel {
 
     private int Pposx = 0;
     private int Pposy = 0;
+
+    private boolean block = false;
 
     private final int shapes[][][] = new int[][][]{
             //T字形按逆時針的順序儲存
@@ -104,7 +124,13 @@ class Game extends JPanel {
             greenCube = ImageIO.read(new File("greenCube.png"));
             blackCube = ImageIO.read(new File("blackCube.png"));
             wallCube = ImageIO.read(new File("wallCube.png"));
-            background = ImageIO.read(new File("background.jpg"));
+            iceCube = ImageIO.read(new File("iceCube.png"));
+            grayCube = ImageIO.read(new File("grayCube.png"));
+
+            IceItem = ImageIO.read(new File("ice.png"));
+            BombItem = ImageIO.read(new File("bomb.png"));
+            BlockItem = ImageIO.read(new File("block.png"));
+            SpeedItem = ImageIO.read(new File("speed.png"));
         }catch (Exception e){
             System.err.println(e);
         }
@@ -342,6 +368,7 @@ class Game extends JPanel {
     {
         int count = 0;
         int ScoreBooster = 1;
+        int lineCount = 0;
         for(int i = mapRow-2; i >= 0; i--)
         {
             count = 0;
@@ -356,19 +383,27 @@ class Game extends JPanel {
             }
             if(count >= mapCol-2)
             {
-
                 for(int k = i; k > 0; k--)
                 {
                     for(int p = 1; p < mapCol-1; p++)
                     {
                         mapGame[k][p] = mapGame[k-1][p];
                     }
-
                 }
                 score += (ScoreBooster*10);
                 i++;
                 ScoreBooster++;
+                lineCount++;
             }
+        }
+        if(lineCount >= 1){
+            int item = random.nextInt(4)+1;
+            if(item1 == 0){
+                item1 = item;
+            }else if(item2 == 0){
+                item2 = item;
+            }
+            System.out.println("獲得" + item + "道具");
         }
     }
 
@@ -419,6 +454,9 @@ class Game extends JPanel {
                         break;
                     case 6:     //田型
                         g.drawImage(blueCube,x, y, RectWidth, RectWidth,null);
+                        break;
+                    case 7:     //道具磚塊
+                        g.drawImage(grayCube,x, y, RectWidth, RectWidth,null);
                         break;
                 }
             }
@@ -546,6 +584,43 @@ class Game extends JPanel {
             }
         }
 
+        g.drawString("Item：", x, y * 14);
+        switch (item1) {
+            case 1:     //冰封道具圖案
+                g.drawImage(IceItem, x, (y * 15), RectWidth*3, RectWidth*3, null);
+                break;
+            case 2:     //炸彈道具圖案
+                g.drawImage(BombItem, x, (y * 15), RectWidth*3, RectWidth*3, null);
+                break;
+            case 3:     //加速道具圖案
+                g.drawImage(SpeedItem, x, (y * 15), RectWidth*3, RectWidth*3, null);
+                break;
+            case 4:     //阻擋道具圖案
+                g.drawImage(BlockItem, x, (y * 15), RectWidth*3, RectWidth*3, null);
+                break;
+        }
+
+        g.setFont(new Font( Font.DIALOG, Font.BOLD, RectWidth-5));
+        g.drawString("Item2：", x, y * 19 - 5);
+        g.setFont(new Font( Font.DIALOG, Font.BOLD, RectWidth));
+        switch (item2) {
+            case 1:     //冰封道具圖案
+                g.drawImage(IceItem, x+RectWidth, (y * 19), RectWidth*2, RectWidth*2, null);
+                break;
+            case 2:     //炸彈道具圖案
+                g.drawImage(BombItem, x+RectWidth, (y * 19), RectWidth*2, RectWidth*2, null);
+                break;
+            case 3:     //加速道具圖案
+                g.drawImage(SpeedItem, x+RectWidth, (y * 19), RectWidth*2, RectWidth*2, null);
+                break;
+            case 4:     //阻擋道具圖案
+                g.drawImage(BlockItem, x+RectWidth, (y * 19), RectWidth*2, RectWidth*2, null);
+                break;
+        }
+
+        if(block == true)
+            g.fillRect(RectWidth , RectWidth,RectWidth * mapCol,RectWidth*(mapRow-6));
+
 
         if(!timer.isRunning()){
             g.drawString("遊戲暫停中", RectWidth * 4,RectWidth * (mapRow / 2));
@@ -593,6 +668,80 @@ class Game extends JPanel {
         }
     }
 
+    public void speedUp()           //遊戲加速10秒
+    {
+        timer.setDelay(100);
+        new Thread(() -> {
+            try {
+                Thread.sleep(10000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            timer.setDelay(500);
+        }).start();
+    }
+
+    public void AddLine()           //添加一行
+    {
+        for(int k = 1; k < mapRow-2; k++)
+        {
+            for(int p = 1; p < mapCol-1; p++)
+            {
+                mapGame[k][p] = mapGame[k+1][p];
+            }
+        }
+        int space = random.nextInt(mapCol-2)+1;
+        for(int k = mapRow-2; k > mapRow-3; k--)
+        {
+            for(int p = 1; p < mapCol-1; p++)
+            {
+                mapGame[k][p] = 7;
+            }
+            mapGame[k][space] = 0;
+        }
+
+    }
+
+    public void DeleteLine()       //強制消除幾行
+    {
+        for(int i = 0;i < 2;i++){
+            for(int k = mapRow-2; k > 0; k--)
+            {
+                for(int p = 1; p < mapCol-1; p++)
+                {
+                    mapGame[k][p] = mapGame[k-1][p];
+                }
+            }
+        }
+    }
+
+    public void Block()           //阻擋畫面
+    {
+        block = true;
+        new Thread(()->{
+            try {
+                Thread.sleep(3000);
+                block = false;
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+    public int useItem()          //使用道具
+    {
+        int tmp = item1;
+        item1 = item2;
+        item2 = 0;
+        if(item1 == 2)
+        {
+            this.DeleteLine();
+            tmp = 0;
+        }
+        System.out.println("你使用道具" + tmp);
+        return tmp;
+    }
+
     class reSized extends ComponentAdapter {
         @Override
         public void componentResized(ComponentEvent e) {
@@ -604,6 +753,7 @@ class Game extends JPanel {
             }else{
                 RectWidth = Height - 5;
             }
+            repaint();
         }
     }
 }

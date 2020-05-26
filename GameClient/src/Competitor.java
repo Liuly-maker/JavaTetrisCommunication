@@ -213,6 +213,7 @@ class Competitor extends JPanel {
             }else{
                 RectWidth = Height - 5;
             }
+            repaint();
         }
     }
 }
