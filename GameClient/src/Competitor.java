@@ -10,12 +10,16 @@ import java.util.Random;
 
 //遊戲類別
 class Competitor extends JPanel {
+
+    /*加載方塊圖片檔案*/
     Image wallCube;
     Image orangeCube;
     Image redCube;
     Image blueCube;
     Image greenCube;
     Image blackCube;
+    Image iceCube;
+    Image grayCube;
 
     Timer timer;
 
@@ -89,6 +93,8 @@ class Competitor extends JPanel {
             greenCube = ImageIO.read(new File("greenCube.png"));
             blackCube = ImageIO.read(new File("blackCube.png"));
             wallCube = ImageIO.read(new File("wallCube.png"));
+            iceCube = ImageIO.read(new File("iceCube.png"));
+            grayCube = ImageIO.read(new File("grayCube.png"));
         }catch (Exception e){
 
         }
@@ -178,6 +184,9 @@ class Competitor extends JPanel {
                         break;
                     case 6:     //田型
                         g.drawImage(blueCube,x, y, RectWidth, RectWidth,null);
+                        break;
+                    case 7:     //道具磚塊
+                        g.drawImage(grayCube,x, y, RectWidth, RectWidth,null);
                         break;
                 }
             }

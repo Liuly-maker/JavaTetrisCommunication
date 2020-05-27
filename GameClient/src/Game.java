@@ -32,8 +32,8 @@ class Game extends JPanel {
     //道具2 炸彈
     //道具3 加速
     //道具4 阻擋視野
-    private int item1 = 1;
-    private int item2 = 1;
+    private int item1 = 0;
+    private int item2 = 0;
 
 
     private int mapRow = 22;                            // 地圖長
@@ -56,6 +56,8 @@ class Game extends JPanel {
 
     private int Pposx = 0;
     private int Pposy = 0;
+
+    private int itemScore = 1;
 
     private boolean block = false;
 
@@ -368,7 +370,6 @@ class Game extends JPanel {
     {
         int count = 0;
         int ScoreBooster = 1;
-        int lineCount = 0;
         for(int i = mapRow-2; i >= 0; i--)
         {
             count = 0;
@@ -393,16 +394,16 @@ class Game extends JPanel {
                 score += (ScoreBooster*10);
                 i++;
                 ScoreBooster++;
-                lineCount++;
             }
         }
-        if(lineCount >= 1){
+        if(itemScore <= score/100){
             int item = random.nextInt(4)+1;
             if(item1 == 0){
                 item1 = item;
             }else if(item2 == 0){
                 item2 = item;
             }
+            itemScore++;
             System.out.println("獲得" + item + "道具");
         }
     }
@@ -733,7 +734,7 @@ class Game extends JPanel {
         int tmp = item1;
         item1 = item2;
         item2 = 0;
-        if(item1 == 2)
+        if(tmp == 2)
         {
             this.DeleteLine();
             tmp = 0;

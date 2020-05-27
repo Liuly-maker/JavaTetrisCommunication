@@ -711,7 +711,7 @@ class GameFrame extends JFrame{
         out.flush();
     }
 
-    private void getItem(JSONObject json)                                      //使用道具效果
+    private void getItem(JSONObject json)                       //使用道具效果
     {
         int item = json.getInt("item");
 
