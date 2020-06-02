@@ -120,19 +120,19 @@ class Game extends JPanel {
     public Game()                                   //建構函式----建立好地圖
     {
         try{
-            redCube = ImageIO.read(new File("redCube.png"));
-            orangeCube = ImageIO.read(new File("orangeCube.png"));
-            blueCube = ImageIO.read(new File("blueCube.png"));
-            greenCube = ImageIO.read(new File("greenCube.png"));
-            blackCube = ImageIO.read(new File("blackCube.png"));
-            wallCube = ImageIO.read(new File("wallCube.png"));
-            iceCube = ImageIO.read(new File("iceCube.png"));
-            grayCube = ImageIO.read(new File("grayCube.png"));
+            redCube = ImageIO.read(new File("./images/redCube.png"));
+            orangeCube = ImageIO.read(new File("./images/orangeCube.png"));
+            blueCube = ImageIO.read(new File("./images/blueCube.png"));
+            greenCube = ImageIO.read(new File("./images/greenCube.png"));
+            blackCube = ImageIO.read(new File("./images/blackCube.png"));
+            wallCube = ImageIO.read(new File("./images/wallCube.png"));
+            iceCube = ImageIO.read(new File("./images/iceCube.png"));
+            grayCube = ImageIO.read(new File("./images/grayCube.png"));
 
-            IceItem = ImageIO.read(new File("ice.png"));
-            BombItem = ImageIO.read(new File("bomb.png"));
-            BlockItem = ImageIO.read(new File("block.png"));
-            SpeedItem = ImageIO.read(new File("speed.png"));
+            IceItem = ImageIO.read(new File("./images/ice.png"));
+            BombItem = ImageIO.read(new File("./images/bomb.png"));
+            BlockItem = ImageIO.read(new File("./images/block.png"));
+            SpeedItem = ImageIO.read(new File("./images/speed.png"));
         }catch (Exception e){
             System.err.println(e);
         }

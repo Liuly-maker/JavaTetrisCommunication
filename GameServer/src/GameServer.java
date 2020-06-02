@@ -77,6 +77,9 @@ class ServerThread extends Server implements Runnable{
     final int _SET_ONLINEMEMBER = 8;
     final int _SEND_ITEM = 9;
     final int _GET_ITEM = 10;
+    final int _REFUSED_BATTLE = 11;
+    final int _ACCEPT_BATTLE = 12;
+    final int _GET_REFUSED = 13;
 
     ServerThread(Socket socket, int userID){
         this.socket = socket;
@@ -126,7 +129,7 @@ class ServerThread extends Server implements Runnable{
                  * 透過action了解用戶動作在做行動
                  */
                 switch (json.getInt("action")) {
-                    case _SEND_MSG: //向聊天室發送訊息
+                    case _SEND_MSG:         //向聊天室發送訊息
                         {
                         String getMsg = json.getString("msg");
                         String sendMsg = "[" + socketName + "] " + userName + " : " + getMsg;
@@ -135,7 +138,7 @@ class ServerThread extends Server implements Runnable{
                         print(sendMsg);
                         break;
                     }
-                    case _SET_NAME: //客戶端設定名稱
+                    case _SET_NAME:         //客戶端設定名稱
                         {
                         String name = json.getString("name");
                         setUserName(name);
@@ -145,7 +148,56 @@ class ServerThread extends Server implements Runnable{
                         print(sendMsg);
                         break;
                     }
-                    case _SEND_COMPETITOR: //寄送對戰邀請給對手
+                    case _REFUSED_BATTLE:   //寄送拒絕邀請
+                        {
+                            String toUserAddress = json.getString("touseraddress");
+
+                            //透過Adress尋找對手
+                            for(Socket sc : sockets)
+                            {
+                                if(sc.getRemoteSocketAddress().toString().equals(toUserAddress))
+                                {
+                                    //找到了
+                                    System.out.println("開始寄送拒絕邀請");
+
+                                    //寄送邀請
+                                    JSONObject Json = new JSONObject();
+                                    Json.put("action",_GET_REFUSED);
+
+                                    synchronized (sc){
+                                        PrintWriter out = new PrintWriter(sc.getOutputStream());
+                                        out.println(Json.toString());
+                                        out.flush();
+                                    }
+                                }
+                            }
+                            break;
+                        }
+                    case _ACCEPT_BATTLE:    //寄送接受邀請
+                        {
+                            String toUserAddress = json.getString("touseraddress"); //欲尋找的對手位址
+                            String UserAddress = json.getString("useraddress");     //發來的Client端位置
+
+                            //透過Adress尋找對手
+                            for(Socket sc : sockets)
+                            {
+                                if(sc.getRemoteSocketAddress().toString().equals(toUserAddress))
+                                {
+                                    //寄送邀請
+                                    JSONObject Json = new JSONObject();
+                                    Json.put("action",_ACCEPT_BATTLE);
+                                    Json.put("useraddress",UserAddress);
+
+                                    synchronized (sc){
+                                        PrintWriter out = new PrintWriter(sc.getOutputStream());
+                                        out.println(Json.toString());
+                                        out.flush();
+                                    }
+                                }
+                            }
+                            break;
+                        }
+                    case _SEND_COMPETITOR:  //寄送對戰邀請給對手
                         {
                         String toUserAddress = json.getString("touseraddress"); //欲尋找的對手位址
                         String UserAddress = json.getString("useraddress");     //發來的Client端位置
@@ -174,7 +226,7 @@ class ServerThread extends Server implements Runnable{
                         }
                         break;
                     }
-                    case _SEND_GAMEMAP: //寄送當前地圖給對手
+                    case _SEND_GAMEMAP:     //寄送當前地圖給對手
                         {
                         String toUserAddress = json.getString("touseraddress");
                         String UserAddress = json.getString("useraddress");
@@ -199,8 +251,8 @@ class ServerThread extends Server implements Runnable{
                         }
                         break;
                     }
-                    case _SEND_ITEM: //寄送使用道具給對手
-                    {
+                    case _SEND_ITEM:        //寄送使用道具給對手
+                        {
                         String toUserAddress = json.getString("touseraddress");
 
                         //透過Adress尋找對手

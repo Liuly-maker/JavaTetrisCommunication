@@ -5,12 +5,14 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
+import java.net.MalformedURLException;
 import java.net.Socket;
+import java.net.URL;
 import java.util.Vector;
 
 //總客戶端
 public class GameClient{
-    public static void main(String [] args){
+    public static void main(String [] args) throws MalformedURLException {
         new GameFrame();
     }
 }
@@ -47,6 +49,7 @@ class GameFrame extends JFrame{
     private JLabel IPLabel;
     private JLabel PortLabel;
     private DefaultTableModel TableModel = new DefaultTableModel();
+    private JPanel showPanel;
 
     Socket socket;
     BufferedReader input;
@@ -63,13 +66,17 @@ class GameFrame extends JFrame{
     final int _SET_ONLINEMEMBER = 8;
     final int _SEND_ITEM = 9;
     final int _GET_ITEM = 10;
+    final int _REFUSED_BATTLE = 11;
+    final int _ACCEPT_BATTLE = 12;
+    final int _GET_REFUSED = 13;
 
     ButtonTrack connectListener;
 
     Game game;
     Competitor competitor;
 
-    String toUserAdress;
+    String toUserAddress;
+
 
     int clientID;
     String userName;
@@ -80,7 +87,7 @@ class GameFrame extends JFrame{
     private int window_Width = 1500;
     private int window_Height = 700;
 
-    private void setupUi()                                      //設定介面
+    private void setupUi() throws MalformedURLException                                      //設定介面
     {
         try{  //設定Style為nimbus
             UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
@@ -393,14 +400,25 @@ class GameFrame extends JFrame{
         gbc.gridy = 5;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         left.add(sendBtn, gbc);
-
         talk.setFont(new Font(Font.DIALOG, Font.PLAIN, 20));
+
 
         /**
          * 遊戲畫面添加
          */
         game = new Game();
         GamePanel.add(game);
+
+        /*showPanel = new JPanel();
+        game.setLayout(null);
+        game.add(showPanel);
+        showPanel.setBounds(-100,100,500,500);
+
+        URL url = new URL("https://phoneky.co.uk/thumbs/screensavers/down/games/explosion_13ljm3f1.gif");
+        Icon icon = new ImageIcon(url);
+        JLabel label = new JLabel(icon);
+        showPanel.add(label);*/
+
         /**
          * 對手畫面添加
          */
@@ -465,34 +483,55 @@ class GameFrame extends JFrame{
 
                                     switch (Json.getInt("action"))
                                     {
-                                        case _GET_MSG:
+                                        case _GET_MSG:        //得到聊天室訊息
+                                        {
                                             talk.append("\n" + Json.getString("msg"));
                                             break;
-                                        case _SET_ID:
+                                        }
+                                        case _SET_ID:          //設定ID
+                                        {
                                             clientID = Json.getInt("id");
                                             talk.append("\n" + "您的使用者ID為 = " + clientID);
                                             break;
-                                        case _GET_COMPETITOR:
-                                            toUserAdress = Json.getString("useraddress");
-                                            JOptionPane.showMessageDialog(null, "取得對手資訊" + toUserAdress + "開始寄送地圖");
-                                            System.out.println("取得對手資訊" + toUserAdress + "開始寄送地圖");
-                                            sendMap();
+                                        }
+                                        case _GET_COMPETITOR:   //接收對戰邀請
+                                        {
+                                            getCompetitor(Json);
                                             break;
-                                        case _GET_GAMEMAP:
-                                            toUserAdress = Json.getString("useraddress");
+                                        }
+                                        case _GET_GAMEMAP:      //取得地圖
+                                        {
+                                            toUserAddress = Json.getString("useraddress");
                                             getMap(Json);
                                             sendMap();
                                             break;
-                                        case _SET_ONLINEMEMBER:
+                                        }
+                                        case _SET_ONLINEMEMBER: //設定線上成員
+                                        {
                                             setMember(Json);
                                             break;
-                                        case _GET_ITEM:
+                                        }
+                                        case _ACCEPT_BATTLE:    //對方接受邀請
+                                        {
+                                            accept_battle(Json);
+                                            break;
+                                        }
+                                        case _GET_ITEM:         //對面使用道具
+                                        {
                                             getItem(Json);
                                             break;
-                                        default:
+                                        }
+                                        case _GET_REFUSED:      //對方回絕邀請
+                                        {
+                                            getRefused();
+                                            break;
+                                        }
+                                        default:                //不再範圍內的預設
+                                        {
                                             System.out.println(inMsg);
                                             talk.append("\n" + inMsg);
                                             break;
+                                        }
                                     }
                                 }
                             }
@@ -594,6 +633,20 @@ class GameFrame extends JFrame{
         connectBtn.addMouseListener(connectListener);
         clearBtn.addMouseListener(new ButtonTrack(clearBtn.getText()));
 
+
+        this.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                int option = JOptionPane.showConfirmDialog(
+                        null,
+                        "你以為可以退出?",
+                        "別想了",
+                        JOptionPane.YES_NO_OPTION,
+                        JOptionPane.QUESTION_MESSAGE);
+                if (option == JOptionPane.YES_OPTION)System.exit(0);
+            }
+        });
+
         this.addWindowStateListener(new WindowTrack());
     }
 
@@ -636,9 +689,10 @@ class GameFrame extends JFrame{
 
     private void sendCompetitor()                               //寄送連線邀請
     {
-        String toUserAddress = JOptionPane.showInputDialog("輸入希望連線的用戶Address : \n" +
+        toUserAddress = JOptionPane.showInputDialog("輸入希望連線的用戶Address : \n" +
                                                            "範例:\\127.0.0.1:6600");
-        if(toUserAddress == null || toUserAddress.isEmpty()){
+        if(toUserAddress == null || toUserAddress.isEmpty())
+        {
             return;
         }
         JSONObject Json = new JSONObject();
@@ -652,7 +706,7 @@ class GameFrame extends JFrame{
         System.out.println(Json.toString());
     }
 
-    private void sendMap()
+    private void sendMap()                                      //寄送地圖
     {
         if(send == null){
             send = new Thread(() -> {
@@ -662,7 +716,7 @@ class GameFrame extends JFrame{
                     json.put("map", game.getMap());
                     json.put("score",game.getScore());
                     json.put("useraddress",socket.getLocalSocketAddress());
-                    json.put("touseraddress", toUserAdress);
+                    json.put("touseraddress", toUserAddress);
 
                     out.println(json.toString());
                     out.flush();
@@ -678,7 +732,7 @@ class GameFrame extends JFrame{
         }
     }
 
-    private void getMap(JSONObject Json)
+    private void getMap(JSONObject Json)                        //取得對方傳來的地圖
     {
         int length1 = Json.getJSONArray("map").length();
         int length2 = Json.getJSONArray("map").getJSONArray(0).length();
@@ -696,16 +750,67 @@ class GameFrame extends JFrame{
 
     private void getCompetitor(JSONObject Json)                 //接收連線邀請
     {
+        toUserAddress = Json.getString("useraddress");
+        String UserName = Json.getString("username");
+        int select = JOptionPane.showConfirmDialog(
+                this,
+                UserName + "要求對戰是否接受邀請?",
+                "邀請",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE);
 
+        if(select == JOptionPane.OK_OPTION){
+            sendAccept();
+            sendMap();
+        }else{
+            sendRefused();
+        }
+    }
+
+    private void sendRefused()                                  //拒絕對戰邀請
+    {
+        System.out.println("寄送我方拒絕邀請");
+        JSONObject json = new JSONObject();
+        json.put("action",_REFUSED_BATTLE);
+        json.put("touseraddress",toUserAddress);
+
+        out.println(json.toString());
+        out.flush();
+    }
+
+    private void getRefused()                                   //得知被拒絕邀請時的提示
+    {
+        System.out.println("對方拒絕邀請");
+        JOptionPane.showMessageDialog(this,"你被拒絕了 :(");
+    }
+
+    private void sendAccept()                                  //寄送接受對戰邀請
+    {
+        System.out.println("我方同意，寄送同意對戰訊息");
+        JSONObject json = new JSONObject();
+        json.put("action", _ACCEPT_BATTLE);
+        json.put("touseraddress", toUserAddress);
+        json.put("useraddress", socket.getLocalSocketAddress());
+
+        out.println(json.toString());
+        out.flush();
+    }
+
+    private void accept_battle(JSONObject Json)                //得知對方接受邀請時
+    {
+        System.out.println("對方接受開始寄送地圖");
+        JOptionPane.showMessageDialog(this,"對方接受邀請 :)");
+        toUserAddress = Json.getString("useraddress");
+        sendMap();
     }
 
     private void sendItem()                                     //寄送使用道具
     {
-        if(toUserAdress == null) return;
+        if(toUserAddress == null) return;
         JSONObject json = new JSONObject();
         json.put("action", _SEND_ITEM);
         json.put("item", game.useItem());
-        json.put("touseraddress", toUserAdress);
+        json.put("touseraddress", toUserAddress);
 
         out.println(json.toString());
         out.flush();
@@ -732,7 +837,7 @@ class GameFrame extends JFrame{
         }
     }
 
-    private class WindowTrack implements WindowStateListener    //視窗狀態監聽
+    private class WindowTrack extends WindowAdapter implements WindowStateListener    //視窗狀態監聽
     {
         @Override
         public void windowStateChanged(WindowEvent windowEvent) {
@@ -763,8 +868,14 @@ class GameFrame extends JFrame{
         TableModel.setDataVector(data, names);   // 设置模型中的元素，它会自动显示在列表中
     }
 
-    GameFrame()                                                 //建構子設定視窗
+    GameFrame() throws MalformedURLException                                                 //建構子設定視窗
     {
+        final SplashScreen splash = SplashScreen.getSplashScreen();
+        if (splash == null) {
+            System.out.println("SplashScreen.getSplashScreen() returned null");
+        }else{
+            Graphics2D g = splash.createGraphics();
+        }
         /**
          * 元件布局
          * setupUi()
@@ -782,9 +893,9 @@ class GameFrame extends JFrame{
          */
         this.setLocationRelativeTo(null);
         /**
-         * 設定關閉時直接結束程序
+         * 設定關閉時不做任何事
          */
-        this.setDefaultCloseOperation(EXIT_ON_CLOSE);
+        this.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         /**
          * 設定視窗標題
          */
@@ -793,6 +904,5 @@ class GameFrame extends JFrame{
          * 設定視窗可見
          */
         this.setVisible(true);
-
     }
 }
