@@ -22,7 +22,7 @@ class GameFrame extends JFrame{
     /**
      * 布局元件
      */
-    private JPanel MainPanel;
+    private MainPanel MainPanel;
     private JPanel bottom;
     private JPanel top;
     private JPanel right;
@@ -87,14 +87,14 @@ class GameFrame extends JFrame{
     private int window_Width = 1500;
     private int window_Height = 700;
 
-    private void setupUi() throws MalformedURLException                                      //設定介面
+    private void setupUi()                                      //設定介面
     {
         try{  //設定Style為nimbus
             UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
         }
         catch (UnsupportedLookAndFeelException | InstantiationException | ClassNotFoundException | IllegalAccessException ignored) {}
 
-        MainPanel = new JPanel();
+        MainPanel = new MainPanel();
         MainPanel.setLayout(new BorderLayout(0, 0));
         Font MainPanelFont = UIManager.getFont("DesktopIcon.font");
         if (MainPanelFont != null) MainPanel.setFont(MainPanelFont);
@@ -400,8 +400,53 @@ class GameFrame extends JFrame{
         gbc.gridy = 5;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         left.add(sendBtn, gbc);
-        talk.setFont(new Font(Font.DIALOG, Font.PLAIN, 20));
 
+        /**
+         * 將排版用的Spacer全部設置為透明
+         */
+        spacer1.setOpaque(false);
+        spacer2.setOpaque(false);
+        spacer3.setOpaque(false);
+        spacer4.setOpaque(false);
+        spacer5.setOpaque(false);
+        spacer6.setOpaque(false);
+        spacer7.setOpaque(false);
+        spacer8.setOpaque(false);
+        spacer9.setOpaque(false);
+        spacer10.setOpaque(false);
+        spacer11.setOpaque(false);
+        spacer12.setOpaque(false);
+        spacer13.setOpaque(false);
+        spacer14.setOpaque(false);
+        spacer15.setOpaque(false);
+        spacer16.setOpaque(false);
+        spacer17.setOpaque(false);
+        spacer18.setOpaque(false);
+
+        /**
+         * 將全部Panel設置為透明
+         */
+        left.setOpaque(false);
+        center.setOpaque(false);
+        bottom.setOpaque(false);
+        right.setOpaque(false);
+        top.setOpaque(false);
+
+        /**
+         * 將旁邊的聊天室窗設置為半透明
+         */
+        talkPanel.setOpaque(false);
+        tab.setOpaque(false);
+
+        scrollPane1.setOpaque(false);
+        scrollPane1.getViewport().setOpaque(false);
+        scrollPane1.setBorder(null);
+        scrollPane1.setViewportBorder(null);
+
+        talk.setBorder(null);
+        talk.setBackground(new Color(0, 0, 0, 70));
+
+        talk.setFont(new Font(Font.DIALOG, Font.PLAIN, 24));
 
         /**
          * 遊戲畫面添加
@@ -868,13 +913,24 @@ class GameFrame extends JFrame{
         TableModel.setDataVector(data, names);   // 设置模型中的元素，它会自动显示在列表中
     }
 
-    GameFrame() throws MalformedURLException                                                 //建構子設定視窗
+    GameFrame()                                               //建構子設定視窗
     {
+        /**
+         * 顯示SplashScreen直到建構子結束
+         */
         final SplashScreen splash = SplashScreen.getSplashScreen();
         if (splash == null) {
             System.out.println("SplashScreen.getSplashScreen() returned null");
         }else{
             Graphics2D g = splash.createGraphics();
+        }
+        /**
+         * 特地添加Sleep讓顯示久一點
+         */
+        try{
+            Thread.sleep(1000);
+        }catch (InterruptedException e){
+            System.err.println(e);
         }
         /**
          * 元件布局

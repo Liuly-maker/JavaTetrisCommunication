@@ -415,8 +415,6 @@ class Game extends JPanel {
         g.setColor(Color.BLACK);
         g.setFont(new Font(Font.DIALOG,Font.BOLD,24));
 
-        g.drawRoundRect(0,0, this.getWidth()-10,getHeight()-5,10,10);
-
         for(int i = 0; i < mapRow; i++)         //刷上底層背景
         {
             for(int j = 0; j < mapCol; j++)
