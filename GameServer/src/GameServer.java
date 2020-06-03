@@ -80,6 +80,8 @@ class ServerThread extends Server implements Runnable{
     final int _REFUSED_BATTLE = 11;
     final int _ACCEPT_BATTLE = 12;
     final int _GET_REFUSED = 13;
+    final int _WIN = 14;
+    final int _LOSE = 15;
 
     ServerThread(Socket socket, int userID){
         this.socket = socket;
@@ -128,27 +130,28 @@ class ServerThread extends Server implements Runnable{
                  * 解析Json
                  * 透過action了解用戶動作在做行動
                  */
-                switch (json.getInt("action")) {
-                    case _SEND_MSG:         //向聊天室發送訊息
+                try{
+                    switch (json.getInt("action")) {
+                        case _SEND_MSG:         //向聊天室發送訊息
                         {
-                        String getMsg = json.getString("msg");
-                        String sendMsg = "[" + socketName + "] " + userName + " : " + getMsg;
-                        System.out.println(sendMsg);
-                        //向線上客戶端輸出資訊
-                        print(sendMsg);
-                        break;
-                    }
-                    case _SET_NAME:         //客戶端設定名稱
+                            String getMsg = json.getString("msg");
+                            String sendMsg = "[" + socketName + "] " + userName + " : " + getMsg;
+                            System.out.println(sendMsg);
+                            //向線上客戶端輸出資訊
+                            print(sendMsg);
+                            break;
+                        }
+                        case _SET_NAME:         //客戶端設定名稱
                         {
-                        String name = json.getString("name");
-                        setUserName(name);
-                        String sendMsg = "[" + socketName + "] " + userName + " 名稱已更改為 " + name;
-                        System.out.println(sendMsg);
-                        //向線上客戶端輸出資訊
-                        print(sendMsg);
-                        break;
-                    }
-                    case _REFUSED_BATTLE:   //寄送拒絕邀請
+                            String name = json.getString("name");
+                            setUserName(name);
+                            String sendMsg = "[" + socketName + "] " + userName + " 名稱已更改為 " + name;
+                            System.out.println(sendMsg);
+                            //向線上客戶端輸出資訊
+                            print(sendMsg);
+                            break;
+                        }
+                        case _REFUSED_BATTLE:   //寄送拒絕邀請
                         {
                             String toUserAddress = json.getString("touseraddress");
 
@@ -173,7 +176,7 @@ class ServerThread extends Server implements Runnable{
                             }
                             break;
                         }
-                    case _ACCEPT_BATTLE:    //寄送接受邀請
+                        case _ACCEPT_BATTLE:    //寄送接受邀請
                         {
                             String toUserAddress = json.getString("touseraddress"); //欲尋找的對手位址
                             String UserAddress = json.getString("useraddress");     //發來的Client端位置
@@ -197,84 +200,110 @@ class ServerThread extends Server implements Runnable{
                             }
                             break;
                         }
-                    case _SEND_COMPETITOR:  //寄送對戰邀請給對手
+                        case _SEND_COMPETITOR:  //寄送對戰邀請給對手
                         {
-                        String toUserAddress = json.getString("touseraddress"); //欲尋找的對手位址
-                        String UserAddress = json.getString("useraddress");     //發來的Client端位置
-                        String UserName = json.getString("username");           //發來的Client端名稱
+                            String toUserAddress = json.getString("touseraddress"); //欲尋找的對手位址
+                            String UserAddress = json.getString("useraddress");     //發來的Client端位置
+                            String UserName = json.getString("username");           //發來的Client端名稱
 
-                        //透過Adress尋找對手
-                        for(Socket sc : sockets)
-                        {
-                            if(sc.getRemoteSocketAddress().toString().equals(toUserAddress))
+                            //透過Adress尋找對手
+                            for(Socket sc : sockets)
                             {
-                                //找到了
-                                System.out.println("開始寄送邀請");
+                                if(sc.getRemoteSocketAddress().toString().equals(toUserAddress))
+                                {
+                                    //找到了
+                                    System.out.println("開始寄送邀請");
 
-                                //寄送邀請
-                                JSONObject Json = new JSONObject();
-                                Json.put("action",_GET_COMPETITOR);
-                                Json.put("useraddress",UserAddress);
-                                Json.put("username",UserName);
+                                    //寄送邀請
+                                    JSONObject Json = new JSONObject();
+                                    Json.put("action",_GET_COMPETITOR);
+                                    Json.put("useraddress",UserAddress);
+                                    Json.put("username",UserName);
 
-                                synchronized (sc){
-                                    PrintWriter out = new PrintWriter(sc.getOutputStream());
-                                    out.println(Json.toString());
-                                    out.flush();
+                                    synchronized (sc){
+                                        PrintWriter out = new PrintWriter(sc.getOutputStream());
+                                        out.println(Json.toString());
+                                        out.flush();
+                                    }
                                 }
                             }
+                            break;
                         }
-                        break;
-                    }
-                    case _SEND_GAMEMAP:     //寄送當前地圖給對手
+                        case _SEND_GAMEMAP:     //寄送當前地圖給對手
                         {
-                        String toUserAddress = json.getString("touseraddress");
-                        String UserAddress = json.getString("useraddress");
+                            String toUserAddress = json.getString("touseraddress");
+                            String UserAddress = json.getString("useraddress");
 
-                        //透過Adress尋找對手
-                        for(Socket sc : sockets)
-                        {
-                            if(sc.getRemoteSocketAddress().toString().equals(toUserAddress))
+                            //透過Adress尋找對手
+                            for(Socket sc : sockets)
                             {
-                                //找到了開始寄送地圖
-                                JSONObject Json = new JSONObject();
-                                Json.put("action",_GET_GAMEMAP);
-                                Json.put("map",json.get("map"));
-                                Json.put("score",json.getInt("score"));
-                                Json.put("useraddress",UserAddress);
-                                synchronized (sc){
-                                    PrintWriter out = new PrintWriter(sc.getOutputStream());
-                                    out.println(Json.toString());
-                                    out.flush();
+                                if(sc.getRemoteSocketAddress().toString().equals(toUserAddress))
+                                {
+                                    //找到了開始寄送地圖
+                                    JSONObject Json = new JSONObject();
+                                    Json.put("action",_GET_GAMEMAP);
+                                    Json.put("map",json.get("map"));
+                                    Json.put("score",json.getInt("score"));
+                                    Json.put("useraddress",UserAddress);
+                                    synchronized (sc){
+                                        PrintWriter out = new PrintWriter(sc.getOutputStream());
+                                        out.println(Json.toString());
+                                        out.flush();
+                                    }
                                 }
                             }
+                            break;
                         }
-                        break;
-                    }
-                    case _SEND_ITEM:        //寄送使用道具給對手
+                        case _SEND_ITEM:        //寄送使用道具給對手
                         {
-                        String toUserAddress = json.getString("touseraddress");
+                            String toUserAddress = json.getString("touseraddress");
 
-                        //透過Adress尋找對手
-                        for(Socket sc : sockets)
-                        {
-                            if(sc.getRemoteSocketAddress().toString().equals(toUserAddress))
+                            //透過Adress尋找對手
+                            for(Socket sc : sockets)
                             {
-                                //找到了開始寄送地圖
-                                JSONObject Json = new JSONObject();
-                                Json.put("action",_GET_ITEM);
-                                Json.put("item",json.getInt("item"));
+                                if(sc.getRemoteSocketAddress().toString().equals(toUserAddress))
+                                {
+                                    //找到了開始寄送地圖
+                                    JSONObject Json = new JSONObject();
+                                    Json.put("action",_GET_ITEM);
+                                    Json.put("item",json.getInt("item"));
 
-                                synchronized (sc){
-                                    PrintWriter out = new PrintWriter(sc.getOutputStream());
-                                    out.println(Json.toString());
-                                    out.flush();
+                                    synchronized (sc){
+                                        PrintWriter out = new PrintWriter(sc.getOutputStream());
+                                        out.println(Json.toString());
+                                        out.flush();
+                                    }
                                 }
                             }
+                            break;
                         }
-                        break;
+                        case _WIN:              //寄給對手她贏了
+                        {
+                            String toUserAddress = json.getString("touseraddress");
+
+                            //透過Adress尋找對手
+                            for(Socket sc : sockets)
+                            {
+                                if(sc.getRemoteSocketAddress().toString().equals(toUserAddress))
+                                {
+                                    //找到了開始寄送地圖
+                                    JSONObject Json = new JSONObject();
+                                    Json.put("action",_WIN);
+
+                                    synchronized (sc){
+                                        PrintWriter out = new PrintWriter(sc.getOutputStream());
+                                        out.println(Json.toString());
+                                        out.flush();
+                                    }
+                                }
+                            }
+                            break;
+                        }
                     }
+                }catch (Exception e){
+                    System.err.println(e);
                 }
+
             }
             closeConnect();
         } catch (IOException e) {

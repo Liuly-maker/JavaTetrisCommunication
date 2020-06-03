@@ -27,12 +27,18 @@ class Game extends JPanel {
     Image SpeedItem;
     Image BlockItem;
 
+    /*遊戲輸了變成True*/
+    boolean isLose = false;
+
+    /*道具特效圖案*/
+    Image fog;
+
     //持有道具
     //道具1 冰封
     //道具2 炸彈
     //道具3 加速
     //道具4 阻擋視野
-    private int item1 = 0;
+    private int item1 = 4;
     private int item2 = 0;
 
 
@@ -60,6 +66,8 @@ class Game extends JPanel {
     private int itemScore = 1;
 
     private boolean block = false;
+
+    int battle_time = 0;
 
     private final int shapes[][][] = new int[][][]{
             //T字形按逆時針的順序儲存
@@ -133,6 +141,7 @@ class Game extends JPanel {
             BombItem = ImageIO.read(new File("./images/bomb.png"));
             BlockItem = ImageIO.read(new File("./images/block.png"));
             SpeedItem = ImageIO.read(new File("./images/speed.png"));
+            fog = ImageIO.read(new File("./images/fog.jpg"));
         }catch (Exception e){
             System.err.println(e);
         }
@@ -203,13 +212,10 @@ class Game extends JPanel {
         //如果產生出來的方塊與地圖當前方塊重疊為遊戲結束
         if(GameOver(posx,posy,curShapeType,curShapeState))
         {
+            isLose = true;
             timer.stop();
-            int select = JOptionPane.showConfirmDialog(null, "是否繼續?", "遊戲結束", JOptionPane.OK_OPTION);
-            if(select == 1){
-                System.exit(0);
-            }else{
-                NewGame();
-            }
+            JOptionPane.showMessageDialog(this,"你遊戲輸了 :( \n往好處想你對手贏了:)");
+            this.NewGame();
         }
     }
 
@@ -396,7 +402,7 @@ class Game extends JPanel {
                 ScoreBooster++;
             }
         }
-        if(itemScore <= score/100){
+        if(itemScore <= score/50){
             int item = random.nextInt(4)+1;
             if(item1 == 0){
                 item1 = item;
@@ -516,7 +522,8 @@ class Game extends JPanel {
         int y = RectWidth;
 
         g.setFont(new Font( Font.DIALOG, Font.BOLD, RectWidth));
-        g.drawString("score = " + score, RectWidth , y * 2);
+        g.drawString("score : " + score, RectWidth , y * 2);
+        g.drawString("Time : " + battle_time, RectWidth*7 , y * 2);
         g.drawString("Next：", x, y * 3);
         for(int i = 0; i < rowRect; i++)
         {
@@ -584,7 +591,8 @@ class Game extends JPanel {
         }
 
         g.drawString("Item：", x, y * 14);
-        switch (item1) {
+        switch (item1)
+        {
             case 1:     //冰封道具圖案
                 g.drawImage(IceItem, x, (y * 15), RectWidth*3, RectWidth*3, null);
                 break;
@@ -618,8 +626,7 @@ class Game extends JPanel {
         }
 
         if(block == true)
-            g.fillRect(RectWidth , RectWidth,RectWidth * mapCol,RectWidth*(mapRow-6));
-
+            g.drawImage(fog, RectWidth, RectWidth*3, RectWidth * mapCol, RectWidth*(mapRow-6), null);
 
         if(!timer.isRunning()){
             g.drawString("遊戲暫停中", RectWidth * 4,RectWidth * (mapRow / 2));
@@ -629,6 +636,14 @@ class Game extends JPanel {
 
     public void NewGame()           //遊戲重新開始
     {
+        isLose = false;
+        timer.setDelay(500);
+        block = false;
+        item1 = 4;
+        item2 = 0;
+        holdShapeType = -1;
+        holdShapeState = -1;
+        itemScore = 1;
         score = 0;
         initMap();
         SetWall();
@@ -741,7 +756,8 @@ class Game extends JPanel {
         return tmp;
     }
 
-    class reSized extends ComponentAdapter {
+    class reSized extends ComponentAdapter
+    {
         @Override
         public void componentResized(ComponentEvent e) {
             int Height = e.getComponent().getHeight() / 22;

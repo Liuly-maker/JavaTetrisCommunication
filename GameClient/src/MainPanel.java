@@ -6,9 +6,9 @@ import java.io.IOException;
 
 public class MainPanel extends JPanel {
     Image background;
-    public MainPanel(){
+    public MainPanel(String url){
         try {
-            background = ImageIO.read(new File("./images/background.png"));
+            background = ImageIO.read(new File(url));
         } catch (IOException e) {
             e.printStackTrace();
         }

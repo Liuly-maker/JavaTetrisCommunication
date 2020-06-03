@@ -1,5 +1,10 @@
+import javafx.application.Platform;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
+import javafx.stage.Stage;
 import org.json.JSONObject;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
@@ -9,6 +14,7 @@ import java.net.MalformedURLException;
 import java.net.Socket;
 import java.net.URL;
 import java.util.Vector;
+import javax.sound.sampled.*;
 
 //總客戶端
 public class GameClient{
@@ -69,6 +75,8 @@ class GameFrame extends JFrame{
     final int _REFUSED_BATTLE = 11;
     final int _ACCEPT_BATTLE = 12;
     final int _GET_REFUSED = 13;
+    final int _WIN = 14;
+    final int _LOSE = 15;
 
     ButtonTrack connectListener;
 
@@ -77,7 +85,23 @@ class GameFrame extends JFrame{
 
     String toUserAddress;
 
+    /*對戰時間(秒)*/
+    int battle_time = 300;
+    private Timer timer = new Timer(1000,(actionEvent) -> {
+        if(battle_time <= 0){
+            time_out();
+        }
+        game.battle_time = battle_time;
+        battle_time--;
+    });
 
+    /*判斷是否輸了的執行續*/
+    private Thread is_lose;
+
+    /*是否在對戰中*/
+    private boolean isBattle = false;
+
+    /**/
     int clientID;
     String userName;
 
@@ -94,7 +118,7 @@ class GameFrame extends JFrame{
         }
         catch (UnsupportedLookAndFeelException | InstantiationException | ClassNotFoundException | IllegalAccessException ignored) {}
 
-        MainPanel = new MainPanel();
+        MainPanel = new MainPanel("./images/background.png");
         MainPanel.setLayout(new BorderLayout(0, 0));
         Font MainPanelFont = UIManager.getFont("DesktopIcon.font");
         if (MainPanelFont != null) MainPanel.setFont(MainPanelFont);
@@ -175,7 +199,7 @@ class GameFrame extends JFrame{
         gbc.ipady = 5;
         top.add(spacer4, gbc);
         stateLabel = new JLabel();
-        stateLabel.setText("Label");
+        stateLabel.setText("Not Connected");
         gbc = new GridBagConstraints();
         gbc.gridx = 8;
         gbc.gridy = 1;
@@ -344,10 +368,10 @@ class GameFrame extends JFrame{
         gbc.gridx = 1;
         gbc.gridy = 1;
         gbc.gridwidth = 2;
-        gbc.weighty = 1.0;
+        gbc.weighty = 0.5;
         gbc.weightx = 1.0;
         gbc.fill = GridBagConstraints.BOTH;
-        gbc.ipady = 75;
+        gbc.ipady = 50;
         left.add(tab, gbc);
         talkPanel = new JPanel();
         talkPanel.setLayout(new GridBagLayout());
@@ -365,7 +389,7 @@ class GameFrame extends JFrame{
         talk.setEditable(false);
         Font talkFont = UIManager.getFont("TextArea.font");
         if (talkFont != null) talk.setFont(talkFont);
-        talk.setText("嘗試加入聊天室...");
+        talk.setText("嘗試加入聊天室...\n");
         scrollPane1.setViewportView(talk);
         onlinePanel = new JPanel();
         onlinePanel.setLayout(new GridBagLayout());
@@ -448,11 +472,16 @@ class GameFrame extends JFrame{
 
         talk.setFont(new Font(Font.DIALOG, Font.PLAIN, 24));
 
+        left.setMaximumSize(new Dimension(75,500));
+
         /**
          * 遊戲畫面添加
          */
         game = new Game();
         GamePanel.add(game);
+        game.setOpaque(false);
+        GamePanel.setOpaque(false);
+
 
         /*showPanel = new JPanel();
         game.setLayout(null);
@@ -469,6 +498,8 @@ class GameFrame extends JFrame{
          */
         competitor = new Competitor();
         AnotherGame.add(competitor);
+        competitor.setOpaque(false);
+        AnotherGame.setOpaque(false);
 
         this.add(MainPanel);    //添加主要Panel
     }
@@ -502,7 +533,7 @@ class GameFrame extends JFrame{
                 try{
                     userName = JOptionPane.showInputDialog("輸入希望的用戶名稱 : ");
                     if(userName == null) {
-                        talk.append("\n用戶取消連線");
+                        talk.append("用戶取消連線\n");
                         return;
                     }
 
@@ -530,13 +561,13 @@ class GameFrame extends JFrame{
                                     {
                                         case _GET_MSG:        //得到聊天室訊息
                                         {
-                                            talk.append("\n" + Json.getString("msg"));
+                                            talk.append(Json.getString("msg") + "\n");
                                             break;
                                         }
                                         case _SET_ID:          //設定ID
                                         {
                                             clientID = Json.getInt("id");
-                                            talk.append("\n" + "您的使用者ID為 = " + clientID);
+                                            talk.append("您的使用者ID為 = " + clientID + "\n");
                                             break;
                                         }
                                         case _GET_COMPETITOR:   //接收對戰邀請
@@ -569,6 +600,11 @@ class GameFrame extends JFrame{
                                         case _GET_REFUSED:      //對方回絕邀請
                                         {
                                             getRefused();
+                                            break;
+                                        }
+                                        case _WIN:
+                                        {
+                                            show_win();
                                             break;
                                         }
                                         default:                //不再範圍內的預設
@@ -616,9 +652,15 @@ class GameFrame extends JFrame{
         }.start();
     }
 
+    private void show_win()
+    {
+        JOptionPane.showMessageDialog(this,"你的對手輸了 :( \n但是你贏了:)");
+        game.NewGame();
+    }
+
     private void clearTalk()                                    //清理對話框
     {
-        talk.setText("已清空對話...");
+        talk.setText("已清空對話...\n");
     }
 
     private void addListener()                                  //添加監聽
@@ -806,7 +848,6 @@ class GameFrame extends JFrame{
 
         if(select == JOptionPane.OK_OPTION){
             sendAccept();
-            sendMap();
         }else{
             sendRefused();
         }
@@ -814,7 +855,7 @@ class GameFrame extends JFrame{
 
     private void sendRefused()                                  //拒絕對戰邀請
     {
-        System.out.println("寄送我方拒絕邀請");
+        talk.append("寄送我方拒絕邀請\n");
         JSONObject json = new JSONObject();
         json.put("action",_REFUSED_BATTLE);
         json.put("touseraddress",toUserAddress);
@@ -825,13 +866,12 @@ class GameFrame extends JFrame{
 
     private void getRefused()                                   //得知被拒絕邀請時的提示
     {
-        System.out.println("對方拒絕邀請");
-        JOptionPane.showMessageDialog(this,"你被拒絕了 :(");
+        talk.append("你被拒絕了 :(\n");
     }
 
     private void sendAccept()                                  //寄送接受對戰邀請
     {
-        System.out.println("我方同意，寄送同意對戰訊息");
+        talk.append("我方同意，寄送同意對戰訊息\n");
         JSONObject json = new JSONObject();
         json.put("action", _ACCEPT_BATTLE);
         json.put("touseraddress", toUserAddress);
@@ -839,14 +879,83 @@ class GameFrame extends JFrame{
 
         out.println(json.toString());
         out.flush();
+        battle_begin();
+        sendMap();
+        is_lose();
     }
 
     private void accept_battle(JSONObject Json)                //得知對方接受邀請時
     {
         System.out.println("對方接受開始寄送地圖");
-        JOptionPane.showMessageDialog(this,"對方接受邀請 :)");
+        talk.append("對方接受邀請 :) 開始計時 \n");
         toUserAddress = Json.getString("useraddress");
+        battle_begin();
         sendMap();
+        is_lose();
+    }
+
+    private void is_lose()                                      //對戰開始，進行迴圈判斷，只要輸了就寄給伺服器對手贏了
+    {
+        if(is_lose == null){
+            is_lose = new Thread(()->{
+                while(!game.isLose){
+                    try {
+                        Thread.sleep(50);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                System.out.println("寄給對手贏了的資訊");
+                JSONObject json = new JSONObject();
+                json.put("action",_WIN);
+                json.put("touseraddress",toUserAddress);
+
+                out.println(json.toString());
+                out.flush();
+            });
+            is_lose.start();
+        }
+    }
+
+    private void battle_begin()                                 //對戰開始要做的事情
+    {
+        game.NewGame();
+        game.ContinueGame();
+        //初始化對戰時間
+        battle_time = 60;
+        //開始倒數計時
+        if(!timer.isRunning())
+            timer.start();
+    }
+
+    private void time_out()                                     //對戰時間到時做的事情
+    {
+        System.out.println("對戰時間到了");
+        timer.stop();
+        game.StopGame();
+        if(game.getScore() < competitor.getScore()) {
+            JFrame losePage = new JFrame("輸家");
+            losePage.add(new MainPanel("./images/loser.jpg"));
+            losePage.setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+            losePage.setSize( 400, 250);
+            losePage.setLocationRelativeTo(null);
+            losePage.setVisible(true);
+        }else if(game.getScore() > competitor.getScore()){
+            JFrame losePage = new JFrame("贏家");
+            losePage.add(new MainPanel("./images/winner.png"));
+            losePage.setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+            losePage.setSize( 400, 250);
+            losePage.setLocationRelativeTo(null);
+            losePage.setVisible(true);
+        }else{
+            JFrame losePage = new JFrame("平手");
+            losePage.add(new MainPanel("./images/tie.png"));
+            losePage.setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+            losePage.setSize( 400, 250);
+            losePage.setLocationRelativeTo(null);
+            losePage.setVisible(true);
+        }
+        game.NewGame();
     }
 
     private void sendItem()                                     //寄送使用道具
@@ -913,7 +1022,7 @@ class GameFrame extends JFrame{
         TableModel.setDataVector(data, names);   // 设置模型中的元素，它会自动显示在列表中
     }
 
-    GameFrame()                                               //建構子設定視窗
+    GameFrame()                                            //建構子設定視窗
     {
         /**
          * 顯示SplashScreen直到建構子結束
@@ -960,5 +1069,23 @@ class GameFrame extends JFrame{
          * 設定視窗可見
          */
         this.setVisible(true);
+        /**
+         *
+         */
+        try{
+            Image icon = ImageIO.read(new File("./images/icon.png"));
+            this.setIconImage(icon);
+        }catch (IOException e){
+            System.err.println(e);
+        }
+
+        PlayBackground play = new PlayBackground();
+        Platform.runLater(()->{
+            try {
+                play.start(new Stage());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
     }
 }

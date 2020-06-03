@@ -210,6 +210,11 @@ class Competitor extends JPanel {
         this.score = score;
     }
 
+    public int getScore()
+    {
+        return score;
+    }
+
     class reSized extends ComponentAdapter
     {
         @Override
