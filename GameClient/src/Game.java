@@ -590,38 +590,38 @@ class Game extends JPanel {
             }
         }
 
-        g.drawString("Item：", x, y * 14);
+        g.drawString("Item：", x, y * 15);
         switch (item1)
         {
             case 1:     //冰封道具圖案
-                g.drawImage(IceItem, x, (y * 15), RectWidth*3, RectWidth*3, null);
+                g.drawImage(IceItem, x, (y * 16), RectWidth*3, RectWidth*3, null);
                 break;
             case 2:     //炸彈道具圖案
-                g.drawImage(BombItem, x, (y * 15), RectWidth*3, RectWidth*3, null);
+                g.drawImage(BombItem, x, (y * 16), RectWidth*3, RectWidth*3, null);
                 break;
             case 3:     //加速道具圖案
-                g.drawImage(SpeedItem, x, (y * 15), RectWidth*3, RectWidth*3, null);
+                g.drawImage(SpeedItem, x, (y * 16), RectWidth*3, RectWidth*3, null);
                 break;
             case 4:     //阻擋道具圖案
-                g.drawImage(BlockItem, x, (y * 15), RectWidth*3, RectWidth*3, null);
+                g.drawImage(BlockItem, x, (y * 16), RectWidth*3, RectWidth*3, null);
                 break;
         }
 
         g.setFont(new Font( Font.DIALOG, Font.BOLD, RectWidth-5));
-        g.drawString("Item2：", x, y * 19 - 5);
+        g.drawString("Item2：", x, y * 20 - 5);
         g.setFont(new Font( Font.DIALOG, Font.BOLD, RectWidth));
         switch (item2) {
             case 1:     //冰封道具圖案
-                g.drawImage(IceItem, x+RectWidth, (y * 19), RectWidth*2, RectWidth*2, null);
+                g.drawImage(IceItem, x+RectWidth, (y * 20), RectWidth*2, RectWidth*2, null);
                 break;
             case 2:     //炸彈道具圖案
-                g.drawImage(BombItem, x+RectWidth, (y * 19), RectWidth*2, RectWidth*2, null);
+                g.drawImage(BombItem, x+RectWidth, (y * 20), RectWidth*2, RectWidth*2, null);
                 break;
             case 3:     //加速道具圖案
-                g.drawImage(SpeedItem, x+RectWidth, (y * 19), RectWidth*2, RectWidth*2, null);
+                g.drawImage(SpeedItem, x+RectWidth, (y * 20), RectWidth*2, RectWidth*2, null);
                 break;
             case 4:     //阻擋道具圖案
-                g.drawImage(BlockItem, x+RectWidth, (y * 19), RectWidth*2, RectWidth*2, null);
+                g.drawImage(BlockItem, x+RectWidth, (y * 20), RectWidth*2, RectWidth*2, null);
                 break;
         }
 

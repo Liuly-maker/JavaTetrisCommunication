@@ -1,24 +1,16 @@
-import javafx.application.Platform;
-import javafx.scene.media.Media;
-import javafx.scene.media.MediaPlayer;
-import javafx.stage.Stage;
 import org.json.JSONObject;
-
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
-import java.net.MalformedURLException;
 import java.net.Socket;
-import java.net.URL;
 import java.util.Vector;
-import javax.sound.sampled.*;
 
 //總客戶端
 public class GameClient{
-    public static void main(String [] args) throws MalformedURLException {
+    public static void main(String [] args){
         new GameFrame();
     }
 }
@@ -55,7 +47,10 @@ class GameFrame extends JFrame{
     private JLabel IPLabel;
     private JLabel PortLabel;
     private DefaultTableModel TableModel = new DefaultTableModel();
-    private JPanel showPanel;
+    private JButton volumeButton;
+    private JLabel Picture;
+
+    PlayBackground playBackground = new PlayBackground();
 
     Socket socket;
     BufferedReader input;
@@ -101,10 +96,12 @@ class GameFrame extends JFrame{
     /*是否在對戰中*/
     private boolean isBattle = false;
 
-    /**/
+    /*用戶ID*/
     int clientID;
+    /*用戶自訂名稱*/
     String userName;
 
+    /*寄送地圖的執行續*/
     Thread send = null;
 
     //視窗長寬設定
@@ -199,7 +196,7 @@ class GameFrame extends JFrame{
         gbc.ipady = 5;
         top.add(spacer4, gbc);
         stateLabel = new JLabel();
-        stateLabel.setText("Not Connected");
+        stateLabel.setText("");
         gbc = new GridBagConstraints();
         gbc.gridx = 8;
         gbc.gridy = 1;
@@ -219,79 +216,93 @@ class GameFrame extends JFrame{
         InviteBtn.setText("SendInvite");
         gbc = new GridBagConstraints();
         gbc.gridx = 1;
-        gbc.gridy = 7;
+        gbc.gridy = 8;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         right.add(InviteBtn, gbc);
         NewGame = new JButton();
         NewGame.setText("NewGame");
         gbc = new GridBagConstraints();
         gbc.gridx = 1;
-        gbc.gridy = 5;
+        gbc.gridy = 6;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         right.add(NewGame, gbc);
         StopGame = new JButton();
         StopGame.setText("StopGame");
         gbc = new GridBagConstraints();
         gbc.gridx = 1;
-        gbc.gridy = 3;
+        gbc.gridy = 4;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         right.add(StopGame, gbc);
         ContinueGame = new JButton();
         ContinueGame.setText("ContinueGame");
         gbc = new GridBagConstraints();
         gbc.gridx = 1;
-        gbc.gridy = 1;
+        gbc.gridy = 2;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         right.add(ContinueGame, gbc);
         final JPanel spacer6 = new JPanel();
         gbc = new GridBagConstraints();
         gbc.gridx = 1;
-        gbc.gridy = 2;
+        gbc.gridy = 3;
         gbc.fill = GridBagConstraints.VERTICAL;
         gbc.ipady = 50;
         right.add(spacer6, gbc);
         final JPanel spacer7 = new JPanel();
         gbc = new GridBagConstraints();
         gbc.gridx = 1;
-        gbc.gridy = 4;
+        gbc.gridy = 5;
         gbc.fill = GridBagConstraints.VERTICAL;
         gbc.ipady = 50;
         right.add(spacer7, gbc);
         final JPanel spacer8 = new JPanel();
         gbc = new GridBagConstraints();
         gbc.gridx = 1;
-        gbc.gridy = 6;
+        gbc.gridy = 7;
         gbc.fill = GridBagConstraints.VERTICAL;
         gbc.ipady = 50;
         right.add(spacer8, gbc);
         final JPanel spacer9 = new JPanel();
         gbc = new GridBagConstraints();
         gbc.gridx = 1;
-        gbc.gridy = 0;
+        gbc.gridy = 1;
         gbc.fill = GridBagConstraints.VERTICAL;
         gbc.ipady = 50;
         right.add(spacer9, gbc);
         final JPanel spacer10 = new JPanel();
         gbc = new GridBagConstraints();
         gbc.gridx = 1;
-        gbc.gridy = 8;
+        gbc.gridy = 9;
         gbc.fill = GridBagConstraints.VERTICAL;
         gbc.ipady = 50;
         right.add(spacer10, gbc);
         final JPanel spacer11 = new JPanel();
         gbc = new GridBagConstraints();
         gbc.gridx = 0;
-        gbc.gridy = 4;
+        gbc.gridy = 5;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.ipadx = 15;
         right.add(spacer11, gbc);
         final JPanel spacer12 = new JPanel();
         gbc = new GridBagConstraints();
         gbc.gridx = 2;
-        gbc.gridy = 4;
+        gbc.gridy = 5;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.ipadx = 20;
         right.add(spacer12, gbc);
+        volumeButton = new JButton();
+        volumeButton.setText("Volume");
+        gbc = new GridBagConstraints();
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        right.add(volumeButton, gbc);
+        Picture = new JLabel();
+        Picture.setText("");
+        gbc = new GridBagConstraints();
+        gbc.gridx = 1;
+        gbc.gridy = 10;
+        gbc.anchor = GridBagConstraints.WEST;
+        right.add(Picture, gbc);
         center = new JPanel();
         center.setLayout(new GridBagLayout());
         MainPanel.add(center, BorderLayout.CENTER);
@@ -322,6 +333,8 @@ class GameFrame extends JFrame{
         center.add(spacer13, gbc);
         left = new JPanel();
         left.setLayout(new GridBagLayout());
+        left.setMaximumSize(new Dimension(400, 2147483647));
+        left.setPreferredSize(new Dimension(400, 667));
         MainPanel.add(left, BorderLayout.WEST);
         clearBtn = new JButton();
         clearBtn.setText("Clear");
@@ -368,10 +381,10 @@ class GameFrame extends JFrame{
         gbc.gridx = 1;
         gbc.gridy = 1;
         gbc.gridwidth = 2;
-        gbc.weighty = 0.5;
         gbc.weightx = 1.0;
+        gbc.weighty = 1.0;
         gbc.fill = GridBagConstraints.BOTH;
-        gbc.ipady = 50;
+        gbc.ipady = 75;
         left.add(tab, gbc);
         talkPanel = new JPanel();
         talkPanel.setLayout(new GridBagLayout());
@@ -389,7 +402,7 @@ class GameFrame extends JFrame{
         talk.setEditable(false);
         Font talkFont = UIManager.getFont("TextArea.font");
         if (talkFont != null) talk.setFont(talkFont);
-        talk.setText("嘗試加入聊天室...\n");
+        talk.setText("嘗試加入聊天室...");
         scrollPane1.setViewportView(talk);
         onlinePanel = new JPanel();
         onlinePanel.setLayout(new GridBagLayout());
@@ -398,6 +411,7 @@ class GameFrame extends JFrame{
         gbc = new GridBagConstraints();
         gbc.gridx = 0;
         gbc.gridy = 0;
+        gbc.weightx = 1.0;
         gbc.weighty = 1.0;
         gbc.fill = GridBagConstraints.BOTH;
         onlinePanel.add(scrollPane2, gbc);
@@ -424,6 +438,7 @@ class GameFrame extends JFrame{
         gbc.gridy = 5;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         left.add(sendBtn, gbc);
+
 
         /**
          * 將排版用的Spacer全部設置為透明
@@ -482,16 +497,8 @@ class GameFrame extends JFrame{
         game.setOpaque(false);
         GamePanel.setOpaque(false);
 
-
-        /*showPanel = new JPanel();
-        game.setLayout(null);
-        game.add(showPanel);
-        showPanel.setBounds(-100,100,500,500);
-
-        URL url = new URL("https://phoneky.co.uk/thumbs/screensavers/down/games/explosion_13ljm3f1.gif");
-        Icon icon = new ImageIcon(url);
-        JLabel label = new JLabel(icon);
-        showPanel.add(label);*/
+        Picture.setIcon(new ImageIcon("./images/pic.gif"));
+        
 
         /**
          * 對手畫面添加
@@ -719,6 +726,18 @@ class GameFrame extends JFrame{
         connectListener = new ButtonTrack(connectBtn.getText());
         connectBtn.addMouseListener(connectListener);
         clearBtn.addMouseListener(new ButtonTrack(clearBtn.getText()));
+
+        volumeButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                super.mouseClicked(e);
+                if(playBackground.isVisible()){
+                    playBackground.setVisible(false);
+                }else{
+                    playBackground.setVisible(true);
+                }
+            }
+        });
 
 
         this.addWindowListener(new WindowAdapter() {
@@ -995,7 +1014,10 @@ class GameFrame extends JFrame{
     {
         @Override
         public void windowStateChanged(WindowEvent windowEvent) {
-            if(windowEvent.getNewState() == 1) game.StopGame();
+            if(windowEvent.getNewState() == 1){
+                playBackground.setVisible(false);
+                game.StopGame();
+            }
         }
     }
 
@@ -1070,7 +1092,7 @@ class GameFrame extends JFrame{
          */
         this.setVisible(true);
         /**
-         *
+         * 設定Icon
          */
         try{
             Image icon = ImageIO.read(new File("./images/icon.png"));
@@ -1078,14 +1100,5 @@ class GameFrame extends JFrame{
         }catch (IOException e){
             System.err.println(e);
         }
-
-        PlayBackground play = new PlayBackground();
-        Platform.runLater(()->{
-            try {
-                play.start(new Stage());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
     }
 }
