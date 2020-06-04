@@ -1,0 +1,1 @@
+jar cmf manifest.mf GameServer.jar *.class org/json/*.class
