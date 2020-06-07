@@ -105,8 +105,8 @@ class GameFrame extends JFrame{
     Thread send = null;
 
     //視窗長寬設定
-    private int window_Width = 1500;
-    private int window_Height = 700;
+    private int window_Width = 1700;
+    private int window_Height = 900;
 
     private void setupUi()                                      //設定介面
     {
@@ -487,7 +487,6 @@ class GameFrame extends JFrame{
 
         talk.setFont(new Font(Font.DIALOG, Font.PLAIN, 24));
 
-        left.setMaximumSize(new Dimension(75,500));
 
         /**
          * 遊戲畫面添加
@@ -661,6 +660,8 @@ class GameFrame extends JFrame{
 
     private void show_win()
     {
+        game.StopGame();
+        timer.stop();
         JOptionPane.showMessageDialog(this,"你的對手輸了 :( \n但是你贏了:)");
         game.NewGame();
     }
@@ -924,6 +925,7 @@ class GameFrame extends JFrame{
                         e.printStackTrace();
                     }
                 }
+                timer.stop();
                 System.out.println("寄給對手贏了的資訊");
                 JSONObject json = new JSONObject();
                 json.put("action",_WIN);

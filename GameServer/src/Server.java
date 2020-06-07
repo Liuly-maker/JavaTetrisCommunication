@@ -10,6 +10,7 @@ import java.util.Vector;
 
 public class Server
 {
+    static ServerFrame serverFrame = new ServerFrame();
     protected static Vector<Socket> sockets = new Vector<>();
     protected static Vector<String> usernames = new Vector<>();
 
@@ -115,6 +116,7 @@ class ServerThread extends Server implements Runnable{
             sendID();
 
             //廣播用戶加入連線
+            serverFrame.printConsole("[" + socketName + "] " + userName + " 已加入聊天");
             System.out.println("[" + socketName + "] " + userName + " 已加入聊天");
             print("[" + socketName + "] " + userName + " 已加入聊天");
 
@@ -142,6 +144,7 @@ class ServerThread extends Server implements Runnable{
                         {
                             String getMsg = json.getString("msg");
                             String sendMsg = "[" + socketName + "] " + userName + " : " + getMsg;
+                            serverFrame.printConsole(sendMsg);
                             System.out.println(sendMsg);
                             //向線上客戶端輸出資訊
                             print(sendMsg);
@@ -400,6 +403,7 @@ class ServerThread extends Server implements Runnable{
      */
     public void closeConnect() throws IOException
     {
+        serverFrame.printConsole("[" + socketName + "] " + userName + "已退出聊天");
         System.out.println("[" + socketName + "] " + userName + "已退出聊天");
         print("[" + socketName + "] " + userName + "已退出聊天");
         //移除沒連線上的客戶端

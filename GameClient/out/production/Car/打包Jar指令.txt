@@ -1,0 +1,1 @@
+jar cmf manifest.mf GameClient.jar *.class org/json/*.class images/*.gif

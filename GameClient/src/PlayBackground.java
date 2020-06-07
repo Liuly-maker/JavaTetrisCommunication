@@ -124,7 +124,7 @@ public class PlayBackground extends JFrame{
 
             //設定音量大小 依照分貝數調整
             // -10.0f為減弱10分貝
-            gainControl.setValue(0.0f);
+            gainControl.setValue(-20.0f);
 
             //循環次數
             clip.loop(Integer.MAX_VALUE);
