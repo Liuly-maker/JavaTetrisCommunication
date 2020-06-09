@@ -1,0 +1,2 @@
+打開out\production\Car路徑下的檔案
+因為過舊版本無法Load音樂

@@ -23,7 +23,7 @@ public class ServerFrame extends JFrame {
         this.setSize(new Dimension(1000,700));
         this.setLocationRelativeTo(null);
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
-        this.setTitle("PopKart Server");
+        this.setTitle("TramisuServer");
         picLabel.setIcon(new ImageIcon("./images/pic.gif"));
         this.setVisible(true);
         printConsole("輸入Port按下開始連線執行伺服器");
